@@ -1,0 +1,728 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MOS管学习笔记（原理 · 参数 · 损耗 · 检测 · 选型）</title>
+<style>
+  :root { --n:#1f6feb; --p:#d9480f; --ok:#2b8a3e; --bad:#c92a2a; --bg:#fafbfc; --line:#d0d7de; }
+  * { box-sizing: border-box; }
+  body { margin:0; font:15px/1.75 "Microsoft YaHei","PingFang SC","Noto Sans CJK SC",sans-serif; color:#24292f; background:#fff; }
+  main { max-width: 980px; margin: 0 auto; padding: 24px 28px 80px; }
+  h1 { font-size: 28px; border-bottom: 3px solid var(--n); padding-bottom: 8px; }
+  h2 { font-size: 22px; margin-top: 44px; border-left: 6px solid var(--n); padding-left: 10px; }
+  h3 { font-size: 17px; margin-top: 26px; }
+  code, .m { font-family: Consolas, "Courier New", monospace; background:#f3f4f6; padding:0 4px; border-radius:3px; }
+  table { border-collapse: collapse; width: 100%; margin: 12px 0; font-size: 13.5px; }
+  th, td { border: 1px solid var(--line); padding: 6px 8px; vertical-align: top; }
+  th { background: #eef3fb; text-align: left; }
+  tr:nth-child(even) td { background: #fbfcfe; }
+  figure { margin: 18px 0; padding: 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); }
+  figure svg { display:block; width:100%; height:auto; }
+  figcaption { font-size: 13px; color:#57606a; margin-top: 6px; }
+  .tip, .warn, .err { padding: 10px 14px; border-radius: 6px; margin: 12px 0; }
+  .tip  { background:#e7f5ff; border-left:5px solid var(--n); }
+  .warn { background:#fff4e6; border-left:5px solid #f08c00; }
+  .err  { background:#fff5f5; border-left:5px solid var(--bad); }
+  .toc { background: var(--bg); border:1px solid var(--line); border-radius:8px; padding: 10px 24px; }
+  .toc ol { margin: 4px 0; }
+  .src { font-size: 13px; color:#57606a; }
+  svg text { font-family: "Microsoft YaHei","PingFang SC",sans-serif; }
+  @media print { h2 { page-break-before: auto; } figure { page-break-inside: avoid; } }
+</style>
+</head>
+<body>
+
+<!-- 公共图元：MOS 符号部件。局部坐标：栅极引线左端 (5,80)，上端引脚 (80,5)，下端引脚 (80,115) -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <marker id="arw" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 Z" fill="context-stroke"/>
+    </marker>
+    <marker id="arwB" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 Z" fill="#222"/>
+    </marker>
+    <marker id="arwR" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 Z" fill="#c92a2a"/>
+    </marker>
+    <g id="mos-base" fill="none" stroke="#222" stroke-width="2">
+      <path d="M5,80 H35 M35,25 V95 M45,32 H80 V5 M45,88 H80 V115 M45,60 H80 V88"/>
+      <circle cx="80" cy="88" r="2.6" fill="#222"/>
+    </g>
+    <path id="ch-e" d="M45,25 V40 M45,52 V68 M45,80 V95" stroke="#222" stroke-width="3.5" fill="none"/>
+    <path id="ch-d" d="M45,25 V95" stroke="#222" stroke-width="3.5" fill="none"/>
+    <path id="arr-n" d="M47,60 L61,54 L61,66 Z" fill="#222"/>
+    <path id="arr-p" d="M78,60 L64,54 L64,66 Z" fill="#222"/>
+    <g id="bd-n" stroke="#222" stroke-width="2" fill="none">
+      <path d="M80,15 H110 V52 M110,70 V105 H80 M100,52 H120"/>
+      <path d="M100,70 L120,70 L110,52 Z" fill="#222"/>
+      <circle cx="80" cy="15" r="2.6" fill="#222"/><circle cx="80" cy="105" r="2.6" fill="#222"/>
+    </g>
+    <g id="bd-p" stroke="#222" stroke-width="2" fill="none">
+      <path d="M80,15 H110 V52 M110,70 V105 H80 M100,70 H120"/>
+      <path d="M100,52 L120,52 L110,70 Z" fill="#222"/>
+      <circle cx="80" cy="15" r="2.6" fill="#222"/><circle cx="80" cy="105" r="2.6" fill="#222"/>
+    </g>
+    <g id="nmos-e"><use href="#mos-base"/><use href="#ch-e"/><use href="#arr-n"/></g>
+    <g id="nmos-d"><use href="#mos-base"/><use href="#ch-d"/><use href="#arr-n"/></g>
+    <g id="pmos-e"><use href="#mos-base"/><use href="#ch-e"/><use href="#arr-p"/></g>
+    <g id="pmos-d"><use href="#mos-base"/><use href="#ch-d"/><use href="#arr-p"/></g>
+    <g id="nmos-pwr"><use href="#nmos-e"/><use href="#bd-n"/></g>
+    <g id="pmos-pwr"><use href="#pmos-e"/><use href="#bd-p"/></g>
+  </defs>
+</svg>
+
+<main>
+<h1>MOS管学习笔记：原理 · 参数 · 损耗 · 检测 · 选型</h1>
+<p class="src">整理来源：知乎《几分钟教你搞定mos管的工作原理》（李工谈元器件，2022）、电子工程专辑《MOS管工作原理、选型及损耗解析》（电源研发精英圈，2025）。两篇原文中的错误已在<a href="#errata">第 9 节</a>集中勘误，正文按正确说法写。本笔记所有图均为 SVG 矢量图，放大不失真；特性曲线由平方律模型按公式计算后绘制，形状与数量关系准确。</p>
+
+<div class="toc"><b>目录</b>
+<ol>
+  <li><a href="#s1">一句话理解 MOS 管</a></li>
+  <li><a href="#s2">分类与电路符号（含识别方法）</a></li>
+  <li><a href="#s3">内部结构与导通原理</a></li>
+  <li><a href="#s4">特性曲线与三个工作区</a></li>
+  <li><a href="#s5">数据手册关键参数怎么看</a></li>
+  <li><a href="#s6">损耗：导通损耗与开关损耗（米勒平台）</a></li>
+  <li><a href="#s7">典型应用电路</a></li>
+  <li><a href="#s8">封装与引脚</a></li>
+  <li><a href="#errata">原文勘误</a></li>
+  <li><a href="#s10">如何检测 MOS 管好坏</a></li>
+  <li><a href="#s11">常见型号、参数与参考价格</a></li>
+  <li><a href="#s12">易错点与设计注意事项</a></li>
+  <li><a href="#s13">画这类图用什么工具</a></li>
+</ol></div>
+
+<!-- ============================ 1 ============================ -->
+<h2 id="s1">1. 一句话理解 MOS 管</h2>
+<p><b>MOS 管（MOSFET，金属-氧化物-半导体场效应晶体管）是用“栅源电压 V<sub>GS</sub>”去控制“漏源之间电流 I<sub>D</sub>”的电压控制型器件。</b></p>
+<div class="tip">
+<b>水龙头类比：</b>D 是进水口，S 是出水口，G 是把手。拧把手（加 V<sub>GS</sub>）几乎不费力（栅极绝缘，静态电流约为 0），但能控制很大的水流（I<sub>D</sub>）。<br>
+<b>更贴近本质的理解：</b>栅极其实是一个<b>电容</b>的一个极板（中间隔着 SiO₂ 绝缘层）。给这个电容充电到足够电压，下面的半导体表面就“感应”出一条导电沟道；放电，沟道消失。所以：
+<ul style="margin:4px 0">
+  <li>静态时栅极几乎不取电流 → 驱动功耗低；</li>
+  <li>但<b>开关瞬间要给栅电容充放电</b>，需要几百 mA 到几 A 的峰值电流 → 这就是为什么高频要用专用驱动芯片；</li>
+  <li>栅极悬空时电容上的电荷不确定 → 管子可能半开半关、发热烧毁，所以 G-S 之间一般要加下拉电阻。</li>
+</ul>
+</div>
+<table>
+  <tr><th>对比项</th><th>MOS 管</th><th>三极管（BJT）</th></tr>
+  <tr><td>控制方式</td><td>电压控制（V<sub>GS</sub>）</td><td>电流控制（I<sub>B</sub>）</td></tr>
+  <tr><td>输入阻抗</td><td>极高（栅极绝缘，GΩ 级以上）</td><td>较低（BE 结正偏导通）</td></tr>
+  <tr><td>导通压降</td><td>I<sub>D</sub>×R<sub>DS(on)</sub>，可做到毫伏级</td><td>V<sub>CE(sat)</sub> 约 0.1~0.3V，基本不随电流变小</td></tr>
+  <tr><td>开关速度</td><td>快（多数载流子器件，无少子存储）</td><td>较慢（饱和时有少子存储效应）</td></tr>
+  <tr><td>温度特性</td><td>R<sub>DS(on)</sub> 正温度系数，利于并联均流</td><td>负温度系数，并联易热失控</td></tr>
+  <tr><td>弱点</td><td>栅极怕静电/过压；有寄生体二极管</td><td>需持续基极电流，驱动功耗较大</td></tr>
+</table>
+
+<!-- ============================ 2 ============================ -->
+<h2 id="s2">2. 分类与电路符号</h2>
+<p>按沟道材料分 N 沟道 / P 沟道，按零偏时有无沟道分<b>增强型</b> / <b>耗尽型</b>，共 4 种。实际电路里 90% 以上用的是 <b>N 沟道增强型</b>，其次是 P 沟道增强型；耗尽型较少见（常用于恒流源、启动电路）。</p>
+<table>
+  <tr><th>类型</th><th>V<sub>GS</sub>=0 时</th><th>怎样导通</th><th>怎样关断</th><th>符号特征</th></tr>
+  <tr><td><b>增强型（E-MOS）</b><br>常闭开关（Normally-Off）</td><td>没有沟道，<b>不导通</b></td><td>NMOS：V<sub>GS</sub> &gt; V<sub>th</sub>（正）<br>PMOS：V<sub>GS</sub> &lt; V<sub>th</sub>（负）</td><td>V<sub>GS</sub> 回到 0</td><td>沟道画成<b>三段虚线</b>（零偏时沟道不存在）</td></tr>
+  <tr><td><b>耗尽型（D-MOS）</b><br>常通开关（Normally-On）</td><td>已有沟道，<b>导通</b></td><td>V<sub>GS</sub>=0 即导通，NMOS 加正压电流更大</td><td>NMOS 需加负压到 V<sub>GS</sub> &lt; V<sub>P</sub>（夹断电压）</td><td>沟道画成<b>一条实线</b></td></tr>
+</table>
+
+<figure>
+<svg viewBox="0 0 620 360" role="img" aria-label="六种MOS管电路符号">
+  <!-- 第一行：N 沟道 -->
+  <g transform="translate(40,10)"><use href="#nmos-e"/></g>
+  <g transform="translate(250,10)"><use href="#nmos-d"/></g>
+  <g transform="translate(450,10)"><use href="#nmos-pwr"/></g>
+  <!-- 第二行：P 沟道（上下镜像，使 S 在上方） -->
+  <g transform="translate(40,190) translate(0,120) scale(1,-1)"><use href="#pmos-e"/></g>
+  <g transform="translate(250,190) translate(0,120) scale(1,-1)"><use href="#pmos-d"/></g>
+  <g transform="translate(450,190) translate(0,120) scale(1,-1)"><use href="#pmos-pwr"/></g>
+  <g font-size="14" font-weight="bold" fill="#222">
+    <!-- N 行引脚标注 -->
+    <text x="30" y="95">G</text><text x="128" y="20">D</text><text x="128" y="122">S</text>
+    <text x="240" y="95">G</text><text x="338" y="20">D</text><text x="338" y="122">S</text>
+    <text x="440" y="95">G</text><text x="518" y="14">D</text><text x="518" y="128">S</text>
+    <!-- P 行引脚标注（镜像后栅极在 y=230） -->
+    <text x="30" y="235">G</text><text x="128" y="200">S</text><text x="128" y="302">D</text>
+    <text x="240" y="235">G</text><text x="338" y="200">S</text><text x="338" y="302">D</text>
+    <text x="440" y="235">G</text><text x="518" y="194">S</text><text x="518" y="308">D</text>
+  </g>
+  <g font-size="13" fill="#1f6feb" text-anchor="middle">
+    <text x="105" y="150">N 沟道 增强型</text><text x="315" y="150">N 沟道 耗尽型</text><text x="525" y="150">功率 NMOS（含体二极管）</text>
+  </g>
+  <g font-size="13" fill="#d9480f" text-anchor="middle">
+    <text x="105" y="335">P 沟道 增强型</text><text x="315" y="335">P 沟道 耗尽型</text><text x="525" y="335">功率 PMOS（含体二极管）</text>
+  </g>
+  <g font-size="11" fill="#57606a" text-anchor="middle">
+    <text x="105" y="166">箭头指向沟道（向内）</text><text x="315" y="166">沟道为实线</text><text x="525" y="166">体二极管：S→D 导通</text>
+    <text x="105" y="351">箭头背离沟道（向外）</text><text x="315" y="351">沟道为实线</text><text x="525" y="351">体二极管：D→S 导通</text>
+  </g>
+</svg>
+<figcaption>图 1　MOS 管电路符号。N 管习惯 D 在上、S 在下（接地侧）；P 管习惯 S 在上（接电源侧）。功率 MOS 内部衬底与 S 相连，因此 D-S 间必然并联一个寄生体二极管。</figcaption>
+</figure>
+
+<h3>从符号快速识别（口诀）</h3>
+<ul>
+  <li><b>G 极</b>：单独伸出、与沟道之间隔着一道缝（绝缘层）的那根线。</li>
+  <li><b>S 极</b>：和中间那根带箭头的衬底线<b>连在一起</b>的引脚（两根线相交的就是 S）。</li>
+  <li><b>D 极</b>：剩下单独引出的那根。</li>
+  <li><b>N 还是 P</b>：箭头<b>指向</b>沟道（朝 G 方向）是 N 沟道；箭头<b>背离</b>沟道是 P 沟道。记法：箭头方向就是衬底 PN 结 P→N 的方向，N 沟道的衬底是 P 型，所以箭头从衬底指向沟道。</li>
+  <li><b>体二极管方向</b>：和箭头方向一致。NMOS 阳极在 S、阴极在 D；PMOS 阳极在 D、阴极在 S。</li>
+</ul>
+
+<!-- ============================ 3 ============================ -->
+<h2 id="s3">3. 内部结构与导通原理（以 N 沟道增强型为例）</h2>
+<p>在轻掺杂的 <b>P 型衬底</b>上扩散两个重掺杂 <b>N⁺ 区</b>作为源极 S 和漏极 D；两者之间的表面上生长一层很薄的 <b>SiO₂ 绝缘层</b>，上面覆盖金属（或多晶硅）作为栅极 G。衬底 B 通常在内部与 S 相连。</p>
+
+<figure>
+<svg viewBox="0 -26 760 326" role="img" aria-label="N沟道增强型MOS管截面：截止与导通">
+  <!-- 左：截止 -->
+  <g>
+    <text x="180" y="-8" font-size="14" font-weight="bold" text-anchor="middle">① V<tspan baseline-shift="sub" font-size="10">GS</tspan> &lt; V<tspan baseline-shift="sub" font-size="10">th</tspan>：截止</text>
+    <rect x="20" y="90" width="320" height="150" fill="#fde2e2" stroke="#999"/>
+    <text x="180" y="225" font-size="13" text-anchor="middle" fill="#a61e4d">P 型衬底（轻掺杂，多子=空穴）</text>
+    <rect x="40" y="90" width="80" height="48" rx="10" fill="#bcd4f6" stroke="#4a78c2"/>
+    <rect x="240" y="90" width="80" height="48" rx="10" fill="#bcd4f6" stroke="#4a78c2"/>
+    <text x="80" y="120" font-size="14" text-anchor="middle">N⁺</text><text x="280" y="120" font-size="14" text-anchor="middle">N⁺</text>
+    <rect x="110" y="78" width="140" height="12" fill="#fff3bf" stroke="#c9a400"/>
+    <rect x="115" y="58" width="130" height="20" fill="#adb5bd" stroke="#555"/>
+    <rect x="60" y="78" width="40" height="12" fill="#adb5bd" stroke="#555"/><rect x="260" y="78" width="40" height="12" fill="#adb5bd" stroke="#555"/>
+    <path d="M80,78 V36 M180,58 V36 M280,78 V36 M180,240 V262 H20 V60 H80" stroke="#222" stroke-width="2" fill="none"/>
+    <text x="80" y="32" text-anchor="middle" font-weight="bold">S</text><text x="180" y="32" text-anchor="middle" font-weight="bold">G</text><text x="280" y="32" text-anchor="middle" font-weight="bold">D</text>
+    <text x="190" y="257" font-size="12">B（衬底，内部接 S）</text>
+    <text x="255" y="74" font-size="11" fill="#8a6d00">SiO₂</text>
+    <!-- PN 结耗尽区（虚线） -->
+    <path d="M30,140 Q80,160 130,140 M230,140 Q280,160 330,140" stroke="#868e96" stroke-dasharray="4 3" fill="none"/>
+    <text x="180" y="170" font-size="12" text-anchor="middle" fill="#495057">两个背靠背 PN 结，D-S 间无通路</text>
+    <text x="180" y="186" font-size="12" text-anchor="middle" fill="#495057">I<tspan baseline-shift="sub" font-size="9">D</tspan> ≈ 0（只有 nA~μA 级漏电流）</text>
+  </g>
+  <!-- 右：导通 -->
+  <g transform="translate(400,0)">
+    <text x="180" y="-8" font-size="14" font-weight="bold" text-anchor="middle">② V<tspan baseline-shift="sub" font-size="10">GS</tspan> &gt; V<tspan baseline-shift="sub" font-size="10">th</tspan>：形成 N 型反型层沟道</text>
+    <rect x="20" y="90" width="320" height="150" fill="#fde2e2" stroke="#999"/>
+    <text x="180" y="225" font-size="13" text-anchor="middle" fill="#a61e4d">P 型衬底</text>
+    <rect x="40" y="90" width="80" height="48" rx="10" fill="#bcd4f6" stroke="#4a78c2"/>
+    <rect x="240" y="90" width="80" height="48" rx="10" fill="#bcd4f6" stroke="#4a78c2"/>
+    <text x="80" y="120" font-size="14" text-anchor="middle">N⁺</text><text x="280" y="120" font-size="14" text-anchor="middle">N⁺</text>
+    <!-- 反型层沟道 -->
+    <rect x="115" y="90" width="130" height="8" fill="#1f6feb"/>
+    <g fill="#fff"><circle cx="125" cy="94" r="2"/><circle cx="140" cy="94" r="2"/><circle cx="155" cy="94" r="2"/><circle cx="170" cy="94" r="2"/><circle cx="185" cy="94" r="2"/><circle cx="200" cy="94" r="2"/><circle cx="215" cy="94" r="2"/><circle cx="230" cy="94" r="2"/></g>
+    <!-- 耗尽层 -->
+    <path d="M115,98 V112 H245 V98" stroke="#868e96" stroke-dasharray="4 3" fill="none"/>
+    <text x="180" y="126" font-size="11" text-anchor="middle" fill="#495057">耗尽层</text>
+    <rect x="110" y="78" width="140" height="12" fill="#fff3bf" stroke="#c9a400"/>
+    <rect x="115" y="58" width="130" height="20" fill="#adb5bd" stroke="#555"/>
+    <g fill="#c92a2a" font-size="13" font-weight="bold"><text x="125" y="72">+ + + + + + + +</text></g>
+    <rect x="60" y="78" width="40" height="12" fill="#adb5bd" stroke="#555"/><rect x="260" y="78" width="40" height="12" fill="#adb5bd" stroke="#555"/>
+    <path d="M80,78 V36 M180,58 V36 M280,78 V36 M180,240 V262 H20 V60 H80" stroke="#222" stroke-width="2" fill="none"/>
+    <text x="80" y="32" text-anchor="middle" font-weight="bold">S</text><text x="180" y="32" text-anchor="middle" font-weight="bold">G（+）</text><text x="280" y="32" text-anchor="middle" font-weight="bold">D（+）</text>
+    <path d="M130,150 H230" stroke="#1f6feb" stroke-width="2" marker-end="url(#arwB)"/>
+    <text x="180" y="168" font-size="12" text-anchor="middle" fill="#1f6feb">电子流：S → D</text>
+    <path d="M230,200 H130" stroke="#c92a2a" stroke-width="2" marker-end="url(#arwR)"/>
+    <text x="180" y="186" font-size="12" text-anchor="middle" fill="#c92a2a">电流 I<tspan baseline-shift="sub" font-size="9">D</tspan>：D → S</text>
+  </g>
+</svg>
+<figcaption>图 2　N 沟道增强型 MOS 管截面（示意，非比例）。栅极正电压通过氧化层电场把 P 衬底表面的空穴（多子）推开、把电子（P 区中的<b>少子</b>）吸引到表面，表面由 P 型“反型”为 N 型，在两个 N⁺ 区之间搭起电子通道。</figcaption>
+</figure>
+
+<ol>
+  <li><b>V<sub>GS</sub>=0</b>：S-衬底-D 构成 N⁺-P-N⁺ 两个背靠背 PN 结，无论 V<sub>DS</sub> 正负都有一个结反偏，D-S 不通。</li>
+  <li><b>0 &lt; V<sub>GS</sub> &lt; V<sub>th</sub></b>：栅极电场把表面空穴推开，形成耗尽层，但电子还不够多，沟道未形成。</li>
+  <li><b>V<sub>GS</sub> ≥ V<sub>th</sub></b>：表面电子浓度超过空穴，出现 N 型反型层，即导电沟道，D-S 导通。V<sub>GS</sub> 越大，沟道越“厚”，R<sub>DS(on)</sub> 越小。</li>
+  <li><b>PMOS</b>：结构完全对偶（N 衬底 + P⁺ 区），需要 <b>V<sub>GS</sub> 为负</b>（栅极比源极低）才能把空穴吸引到表面形成 P 沟道。由于空穴迁移率只有电子的约 1/2~1/3，<b>同尺寸 PMOS 的 R<sub>DS(on)</sub> 更大、价格更贵</b>，这也是大电流场合优先选 NMOS 的原因。</li>
+  <li><b>耗尽型</b>：制造时就在栅下预先做好了一条掺杂沟道，所以 V<sub>GS</sub>=0 也导通；NMOS 加负 V<sub>GS</sub> 把沟道中的电子赶走，直到夹断电压 V<sub>P</sub> 时关断。</li>
+</ol>
+<div class="tip"><b>注意：</b>实际的功率 MOS 管（如 IRF540N）为了耐压和大电流，采用<b>垂直结构</b>（VDMOS / Trench MOS），电流从芯片背面的漏极垂直流到正面的源极，和上面教科书式的平面横向结构不同，但“栅压感应沟道”的原理一致。体二极管就是这种结构中 P 体区与 N 漂移区形成的 PN 结。</div>
+
+<!-- ============================ 4 ============================ -->
+<h2 id="s4">4. 特性曲线与三个工作区</h2>
+<p>下面两张图按长沟道平方律模型计算绘制（示例参数：V<sub>th</sub>=2V，K=0.5A/V²，沟道长度调制 λ=0.02V⁻¹）。真实功率管数值不同，但曲线形状一致。</p>
+<ul>
+  <li>线性区：I<sub>D</sub> = K·[2(V<sub>GS</sub>−V<sub>th</sub>)·V<sub>DS</sub> − V<sub>DS</sub>²]，V<sub>DS</sub> 很小时 ≈ 线性电阻</li>
+  <li>饱和区：I<sub>D</sub> = K·(V<sub>GS</sub>−V<sub>th</sub>)²·(1+λV<sub>DS</sub>)，基本只受 V<sub>GS</sub> 控制</li>
+  <li>两区分界：V<sub>DS</sub> = V<sub>GS</sub> − V<sub>th</sub>（图中红色虚线）</li>
+</ul>
+
+<figure>
+<svg viewBox="0 0 720 360" role="img" aria-label="NMOS 输出特性曲线">
+  <!-- 网格 -->
+  <g stroke="#e4e7eb" stroke-width="1">
+    <path d="M100,20 V300 M140,20 V300 M180,20 V300 M220,20 V300 M260,20 V300 M300,20 V300 M340,20 V300 M380,20 V300 M420,20 V300 M460,20 V300"/>
+    <path d="M60,244 H460 M60,188 H460 M60,132 H460 M60,76 H460 M60,20 H460"/>
+  </g>
+  <!-- 线性区底色 -->
+  <path d="M60.0,300.0 L62.0,300.0 L64.0,299.9 L66.0,299.7 L68.0,299.4 L70.0,299.1 L72.0,298.7 L74.0,298.3 L76.0,297.7 L78.0,297.1 L80.0,296.5 L82.0,295.7 L84.0,294.9 L86.0,294.0 L88.0,293.0 L90.0,292.0 L92.0,290.9 L94.0,289.7 L96.0,288.5 L98.0,287.1 L100.0,285.7 L102.0,284.2 L104.0,282.7 L106.0,281.1 L108.0,279.4 L110.0,277.6 L112.0,275.7 L114.0,273.8 L116.0,271.8 L118.0,269.7 L120.0,267.6 L122.0,265.3 L124.0,263.0 L126.0,260.6 L128.0,258.2 L130.0,255.6 L132.0,253.0 L134.0,250.3 L136.0,247.5 L138.0,244.7 L140.0,241.8 L142.0,238.8 L144.0,235.7 L146.0,232.5 L148.0,229.3 L150.0,225.9 L152.0,222.5 L154.0,219.1 L156.0,215.5 L158.0,211.8 L160.0,208.1 L162.0,204.3 L164.0,200.4 L166.0,196.5 L168.0,192.4 L170.0,188.3 L172.0,184.1 L174.0,179.8 L176.0,175.4 L178.0,171.0 L180.0,166.4 L182.0,161.8 L184.0,157.1 L186.0,152.3 L188.0,147.5 L190.0,142.5 L192.0,137.5 L194.0,132.4 L196.0,127.2 L198.0,121.9 L200.0,116.5 L202.0,111.0 L204.0,105.5 L206.0,99.9 L208.0,94.2 L210.0,88.4 L212.0,82.5 L214.0,76.5 L216.0,70.5 L218.0,64.3 L220.0,58.1 L222.0,51.8 L224.0,45.4 L226.0,38.9 L228.0,32.3 L230.0,25.6 L60,20 Z" fill="#e7f5ff" opacity="0.7"/>
+  <!-- 坐标轴 -->
+  <path d="M60,305 V12" stroke="#222" stroke-width="1.6" marker-end="url(#arwB)"/>
+  <path d="M55,300 H475" stroke="#222" stroke-width="1.6" marker-end="url(#arwB)"/>
+  <g font-size="12" text-anchor="middle" fill="#333">
+    <text x="60" y="316">0</text><text x="140" y="316">2</text><text x="220" y="316">4</text><text x="300" y="316">6</text><text x="380" y="316">8</text><text x="460" y="316">10</text>
+    <text x="270" y="338">V<tspan baseline-shift="sub" font-size="9">DS</tspan> / V</text>
+  </g>
+  <g font-size="12" text-anchor="end" fill="#333">
+    <text x="54" y="248">2</text><text x="54" y="192">4</text><text x="54" y="136">6</text><text x="54" y="80">8</text><text x="54" y="24">10</text>
+  </g>
+  <text x="66" y="12" font-size="12">I<tspan baseline-shift="sub" font-size="9">D</tspan> / A</text>
+  <!-- 曲线 -->
+  <g fill="none" stroke-width="2.4">
+    <path d="M60.0,300.0 L64.0,297.3 L68.0,294.9 L72.0,292.8 L76.0,291.0 L80.0,289.4 L84.0,288.1 L88.0,287.1 L92.0,286.3 L96.0,285.9 L100.0,285.7 L104.0,285.7 L108.0,285.7 L112.0,285.6 L116.0,285.6 L120.0,285.6 L124.0,285.6 L128.0,285.5 L132.0,285.5 L136.0,285.5 L140.0,285.4 L144.0,285.4 L148.0,285.4 L152.0,285.4 L156.0,285.3 L160.0,285.3 L164.0,285.3 L168.0,285.2 L172.0,285.2 L176.0,285.2 L180.0,285.2 L184.0,285.1 L188.0,285.1 L192.0,285.1 L196.0,285.0 L200.0,285.0 L204.0,285.0 L208.0,285.0 L212.0,284.9 L216.0,284.9 L220.0,284.9 L224.0,284.9 L228.0,284.8 L232.0,284.8 L236.0,284.8 L240.0,284.7 L244.0,284.7 L248.0,284.7 L252.0,284.7 L256.0,284.6 L260.0,284.6 L264.0,284.6 L268.0,284.5 L272.0,284.5 L276.0,284.5 L280.0,284.5 L284.0,284.4 L288.0,284.4 L292.0,284.4 L296.0,284.3 L300.0,284.3 L304.0,284.3 L308.0,284.3 L312.0,284.2 L316.0,284.2 L320.0,284.2 L324.0,284.2 L328.0,284.1 L332.0,284.1 L336.0,284.1 L340.0,284.0 L344.0,284.0 L348.0,284.0 L352.0,284.0 L356.0,283.9 L360.0,283.9 L364.0,283.9 L368.0,283.8 L372.0,283.8 L376.0,283.8 L380.0,283.8 L384.0,283.7 L388.0,283.7 L392.0,283.7 L396.0,283.6 L400.0,283.6 L404.0,283.6 L408.0,283.6 L412.0,283.5 L416.0,283.5 L420.0,283.5 L424.0,283.5 L428.0,283.4 L432.0,283.4 L436.0,283.4 L440.0,283.3 L444.0,283.3 L448.0,283.3 L452.0,283.3 L456.0,283.2 L460.0,283.2" stroke="#74c0fc"/>
+    <path d="M60.0,300.0 L64.0,294.5 L68.0,289.3 L72.0,284.4 L76.0,279.7 L80.0,275.3 L84.0,271.1 L88.0,267.2 L92.0,263.6 L96.0,260.2 L100.0,257.2 L104.0,254.4 L108.0,251.8 L112.0,249.6 L116.0,247.6 L120.0,245.9 L124.0,244.5 L128.0,243.4 L132.0,242.6 L136.0,242.0 L140.0,241.8 L144.0,241.6 L148.0,241.5 L152.0,241.4 L156.0,241.3 L160.0,241.2 L164.0,241.1 L168.0,241.0 L172.0,240.9 L176.0,240.8 L180.0,240.6 L184.0,240.5 L188.0,240.4 L192.0,240.3 L196.0,240.2 L200.0,240.1 L204.0,240.0 L208.0,239.9 L212.0,239.7 L216.0,239.6 L220.0,239.5 L224.0,239.4 L228.0,239.3 L232.0,239.2 L236.0,239.1 L240.0,239.0 L244.0,238.8 L248.0,238.7 L252.0,238.6 L256.0,238.5 L260.0,238.4 L264.0,238.3 L268.0,238.2 L272.0,238.1 L276.0,238.0 L280.0,237.8 L284.0,237.7 L288.0,237.6 L292.0,237.5 L296.0,237.4 L300.0,237.3 L304.0,237.2 L308.0,237.1 L312.0,236.9 L316.0,236.8 L320.0,236.7 L324.0,236.6 L328.0,236.5 L332.0,236.4 L336.0,236.3 L340.0,236.2 L344.0,236.0 L348.0,235.9 L352.0,235.8 L356.0,235.7 L360.0,235.6 L364.0,235.5 L368.0,235.4 L372.0,235.3 L376.0,235.2 L380.0,235.0 L384.0,234.9 L388.0,234.8 L392.0,234.7 L396.0,234.6 L400.0,234.5 L404.0,234.4 L408.0,234.3 L412.0,234.1 L416.0,234.0 L420.0,233.9 L424.0,233.8 L428.0,233.7 L432.0,233.6 L436.0,233.5 L440.0,233.4 L444.0,233.2 L448.0,233.1 L452.0,233.0 L456.0,232.9 L460.0,232.8" stroke="#339af0"/>
+    <path d="M60.0,300.0 L64.0,291.7 L68.0,283.7 L72.0,275.9 L76.0,268.4 L80.0,261.1 L84.0,254.1 L88.0,247.3 L92.0,240.8 L96.0,234.6 L100.0,228.6 L104.0,222.9 L108.0,217.4 L112.0,212.2 L116.0,207.3 L120.0,202.7 L124.0,198.3 L128.0,194.2 L132.0,190.3 L136.0,186.8 L140.0,183.5 L144.0,180.5 L148.0,177.8 L152.0,175.4 L156.0,173.2 L160.0,171.4 L164.0,169.8 L168.0,168.5 L172.0,167.5 L176.0,166.8 L180.0,166.4 L184.0,166.2 L188.0,165.9 L192.0,165.7 L196.0,165.4 L200.0,165.2 L204.0,164.9 L208.0,164.7 L212.0,164.4 L216.0,164.2 L220.0,163.9 L224.0,163.7 L228.0,163.4 L232.0,163.2 L236.0,162.9 L240.0,162.7 L244.0,162.4 L248.0,162.2 L252.0,161.9 L256.0,161.7 L260.0,161.4 L264.0,161.1 L268.0,160.9 L272.0,160.6 L276.0,160.4 L280.0,160.1 L284.0,159.9 L288.0,159.6 L292.0,159.4 L296.0,159.1 L300.0,158.9 L304.0,158.6 L308.0,158.4 L312.0,158.1 L316.0,157.9 L320.0,157.6 L324.0,157.4 L328.0,157.1 L332.0,156.9 L336.0,156.6 L340.0,156.4 L344.0,156.1 L348.0,155.9 L352.0,155.6 L356.0,155.4 L360.0,155.1 L364.0,154.8 L368.0,154.6 L372.0,154.3 L376.0,154.1 L380.0,153.8 L384.0,153.6 L388.0,153.3 L392.0,153.1 L396.0,152.8 L400.0,152.6 L404.0,152.3 L408.0,152.1 L412.0,151.8 L416.0,151.6 L420.0,151.3 L424.0,151.1 L428.0,150.8 L432.0,150.6 L436.0,150.3 L440.0,150.1 L444.0,149.8 L448.0,149.6 L452.0,149.3 L456.0,149.1 L460.0,148.8" stroke="#1c7ed6"/>
+    <path d="M60.0,300.0 L64.0,288.9 L68.0,278.1 L72.0,267.5 L76.0,257.1 L80.0,247.0 L84.0,237.1 L88.0,227.5 L92.0,218.1 L96.0,208.9 L100.0,200.0 L104.0,191.4 L108.0,183.0 L112.0,174.9 L116.0,167.0 L120.0,159.4 L124.0,152.1 L128.0,145.0 L132.0,138.1 L136.0,131.6 L140.0,125.3 L144.0,119.3 L148.0,113.5 L152.0,108.0 L156.0,102.8 L160.0,97.9 L164.0,93.2 L168.0,88.8 L172.0,84.7 L176.0,80.9 L180.0,77.4 L184.0,74.2 L188.0,71.2 L192.0,68.5 L196.0,66.2 L200.0,64.1 L204.0,62.3 L208.0,60.8 L212.0,59.6 L216.0,58.7 L220.0,58.1 L224.0,57.6 L228.0,57.2 L232.0,56.7 L236.0,56.3 L240.0,55.8 L244.0,55.4 L248.0,54.9 L252.0,54.5 L256.0,54.0 L260.0,53.6 L264.0,53.2 L268.0,52.7 L272.0,52.3 L276.0,51.8 L280.0,51.4 L284.0,50.9 L288.0,50.5 L292.0,50.0 L296.0,49.6 L300.0,49.1 L304.0,48.7 L308.0,48.2 L312.0,47.8 L316.0,47.3 L320.0,46.9 L324.0,46.4 L328.0,46.0 L332.0,45.5 L336.0,45.1 L340.0,44.6 L344.0,44.2 L348.0,43.7 L352.0,43.3 L356.0,42.8 L360.0,42.4 L364.0,42.0 L368.0,41.5 L372.0,41.1 L376.0,40.6 L380.0,40.2 L384.0,39.7 L388.0,39.3 L392.0,38.8 L396.0,38.4 L400.0,37.9 L404.0,37.5 L408.0,37.0 L412.0,36.6 L416.0,36.1 L420.0,35.7 L424.0,35.2 L428.0,34.8 L432.0,34.3 L436.0,33.9 L440.0,33.4 L444.0,33.0 L448.0,32.5 L452.0,32.1 L456.0,31.6 L460.0,31.2" stroke="#0b4fa3"/>
+  </g>
+  <path d="M60.0,300.0 L62.0,300.0 L64.0,299.9 L66.0,299.7 L68.0,299.4 L70.0,299.1 L72.0,298.7 L74.0,298.3 L76.0,297.7 L78.0,297.1 L80.0,296.5 L82.0,295.7 L84.0,294.9 L86.0,294.0 L88.0,293.0 L90.0,292.0 L92.0,290.9 L94.0,289.7 L96.0,288.5 L98.0,287.1 L100.0,285.7 L102.0,284.2 L104.0,282.7 L106.0,281.1 L108.0,279.4 L110.0,277.6 L112.0,275.7 L114.0,273.8 L116.0,271.8 L118.0,269.7 L120.0,267.6 L122.0,265.3 L124.0,263.0 L126.0,260.6 L128.0,258.2 L130.0,255.6 L132.0,253.0 L134.0,250.3 L136.0,247.5 L138.0,244.7 L140.0,241.8 L142.0,238.8 L144.0,235.7 L146.0,232.5 L148.0,229.3 L150.0,225.9 L152.0,222.5 L154.0,219.1 L156.0,215.5 L158.0,211.8 L160.0,208.1 L162.0,204.3 L164.0,200.4 L166.0,196.5 L168.0,192.4 L170.0,188.3 L172.0,184.1 L174.0,179.8 L176.0,175.4 L178.0,171.0 L180.0,166.4 L182.0,161.8 L184.0,157.1 L186.0,152.3 L188.0,147.5 L190.0,142.5 L192.0,137.5 L194.0,132.4 L196.0,127.2 L198.0,121.9 L200.0,116.5 L202.0,111.0 L204.0,105.5 L206.0,99.9 L208.0,94.2 L210.0,88.4 L212.0,82.5 L214.0,76.5 L216.0,70.5 L218.0,64.3 L220.0,58.1 L222.0,51.8 L224.0,45.4 L226.0,38.9 L228.0,32.3 L230.0,25.6" fill="none" stroke="#e03131" stroke-width="1.6" stroke-dasharray="6 4"/>
+  <g font-size="12" fill="#0b4fa3">
+    <text x="466" y="286">V<tspan baseline-shift="sub" font-size="9">GS</tspan>=3V</text>
+    <text x="466" y="229">V<tspan baseline-shift="sub" font-size="9">GS</tspan>=4V</text>
+    <text x="466" y="152">V<tspan baseline-shift="sub" font-size="9">GS</tspan>=5V</text>
+    <text x="466" y="32">V<tspan baseline-shift="sub" font-size="9">GS</tspan>=6V</text>
+  </g>
+  <!-- 区域标注 -->
+  <text x="66" y="40" font-size="12" fill="#1864ab" font-weight="bold">线性区</text>
+  <text x="66" y="55" font-size="11" fill="#1864ab">（可变电阻区/欧姆区）</text>
+  <text x="300" y="206" font-size="13" fill="#5c940d" font-weight="bold" text-anchor="middle">饱和区（恒流区 / 放大区）</text>
+  <text x="380" y="270" font-size="11" fill="#868e96" text-anchor="middle">截止区在横轴上 ↓ V<tspan baseline-shift="sub" font-size="8">GS</tspan> ≤ V<tspan baseline-shift="sub" font-size="8">th</tspan>=2V，I<tspan baseline-shift="sub" font-size="8">D</tspan>≈0（贴着横轴）</text>
+  <text x="236" y="64" font-size="11" fill="#e03131">V<tspan baseline-shift="sub" font-size="8">DS</tspan>=V<tspan baseline-shift="sub" font-size="8">GS</tspan>−V<tspan baseline-shift="sub" font-size="8">th</tspan></text>
+  <!-- 工作点 -->
+  <circle cx="80" cy="247" r="5" fill="#f08c00" stroke="#fff" stroke-width="1.5"/>
+  <text x="90" y="262" font-size="12" fill="#d9480f" font-weight="bold">A</text>
+  <circle cx="300" cy="158.9" r="5" fill="#2b8a3e" stroke="#fff" stroke-width="1.5"/>
+  <text x="308" y="152" font-size="12" fill="#2b8a3e" font-weight="bold">Q</text>
+  <!-- 图例 -->
+  <g font-size="11.5" transform="translate(560,120)">
+    <circle cx="6" cy="0" r="5" fill="#f08c00"/><text x="16" y="4">A：开关导通点</text>
+    <text x="16" y="19" fill="#57606a">V<tspan baseline-shift="sub" font-size="8">DS</tspan>很小，相当于电阻</text>
+    <circle cx="6" cy="40" r="5" fill="#2b8a3e"/><text x="16" y="44">Q：放大静态点</text>
+    <text x="16" y="59" fill="#57606a">I<tspan baseline-shift="sub" font-size="8">D</tspan>只由V<tspan baseline-shift="sub" font-size="8">GS</tspan>决定</text>
+  </g>
+</svg>
+<figcaption>图 3　N 沟道增强型 MOS 输出特性（I<sub>D</sub>–V<sub>DS</sub>），按公式计算绘制。浅蓝底色为线性区。</figcaption>
+</figure>
+
+<figure>
+<svg viewBox="0 0 600 350" role="img" aria-label="增强型与耗尽型转移特性">
+  <g stroke="#e4e7eb"><path d="M60,20 V300 M100,20 V300 M140,20 V300 M180,20 V300 M260,20 V300 M300,20 V300 M340,20 V300 M380,20 V300 M420,20 V300 M460,20 V300"/><path d="M60,244 H460 M60,188 H460 M60,132 H460 M60,76 H460 M60,20 H460"/></g>
+  <path d="M220,305 V12" stroke="#222" stroke-width="1.6" marker-end="url(#arwB)"/>
+  <path d="M55,300 H475" stroke="#222" stroke-width="1.6" marker-end="url(#arwB)"/>
+  <g font-size="12" text-anchor="middle" fill="#333">
+    <text x="60" y="316">−4</text><text x="100" y="316">−3</text><text x="140" y="316">−2</text><text x="180" y="316">−1</text><text x="220" y="316">0</text><text x="260" y="316">1</text><text x="300" y="316">2</text><text x="340" y="316">3</text><text x="380" y="316">4</text><text x="420" y="316">5</text><text x="460" y="316">6</text>
+    <text x="270" y="338">V<tspan baseline-shift="sub" font-size="9">GS</tspan> / V</text>
+  </g>
+  <g font-size="12" text-anchor="end"><text x="214" y="248">2</text><text x="214" y="192">4</text><text x="214" y="136">6</text><text x="214" y="80">8</text><text x="214" y="24">10</text></g>
+  <text x="226" y="12" font-size="12">I<tspan baseline-shift="sub" font-size="9">D</tspan> / A</text>
+  <path d="M60.0,300.0 L64.0,300.0 L68.0,300.0 L72.0,300.0 L76.0,300.0 L80.0,300.0 L84.0,300.0 L88.0,300.0 L92.0,300.0 L96.0,300.0 L100.0,300.0 L104.0,299.9 L108.0,299.4 L112.0,298.7 L116.0,297.8 L120.0,296.5 L124.0,295.0 L128.0,293.1 L132.0,291.0 L136.0,288.7 L140.0,286.0 L144.0,283.1 L148.0,279.8 L152.0,276.3 L156.0,272.6 L160.0,268.5 L164.0,264.2 L168.0,259.5 L172.0,254.6 L176.0,249.5 L180.0,244.0 L184.0,238.3 L188.0,232.2 L192.0,225.9 L196.0,219.4 L200.0,212.5 L204.0,205.4 L208.0,197.9 L212.0,190.2 L216.0,182.3 L220.0,174.0 L224.0,165.5 L228.0,156.6 L232.0,147.5 L236.0,138.2 L240.0,128.5 L244.0,118.6 L248.0,108.3 L252.0,97.8 L256.0,87.1 L260.0,76.0 L264.0,64.7 L268.0,53.0 L272.0,41.1 L276.0,29.0" fill="none" stroke="#f08c00" stroke-width="2.6"/>
+  <path d="M60.0,300.0 L64.0,300.0 L68.0,300.0 L72.0,300.0 L76.0,300.0 L80.0,300.0 L84.0,300.0 L88.0,300.0 L92.0,300.0 L96.0,300.0 L100.0,300.0 L104.0,300.0 L108.0,300.0 L112.0,300.0 L116.0,300.0 L120.0,300.0 L124.0,300.0 L128.0,300.0 L132.0,300.0 L136.0,300.0 L140.0,300.0 L144.0,300.0 L148.0,300.0 L152.0,300.0 L156.0,300.0 L160.0,300.0 L164.0,300.0 L168.0,300.0 L172.0,300.0 L176.0,300.0 L180.0,300.0 L184.0,300.0 L188.0,300.0 L192.0,300.0 L196.0,300.0 L200.0,300.0 L204.0,300.0 L208.0,300.0 L212.0,300.0 L216.0,300.0 L220.0,300.0 L224.0,300.0 L228.0,300.0 L232.0,300.0 L236.0,300.0 L240.0,300.0 L244.0,300.0 L248.0,300.0 L252.0,300.0 L256.0,300.0 L260.0,300.0 L264.0,300.0 L268.0,300.0 L272.0,300.0 L276.0,300.0 L280.0,300.0 L284.0,300.0 L288.0,300.0 L292.0,300.0 L296.0,300.0 L300.0,300.0 L304.0,299.9 L308.0,299.4 L312.0,298.7 L316.0,297.8 L320.0,296.5 L324.0,295.0 L328.0,293.1 L332.0,291.0 L336.0,288.7 L340.0,286.0 L344.0,283.1 L348.0,279.8 L352.0,276.3 L356.0,272.6 L360.0,268.5 L364.0,264.2 L368.0,259.5 L372.0,254.6 L376.0,249.5 L380.0,244.0 L384.0,238.3 L388.0,232.2 L392.0,225.9 L396.0,219.4 L400.0,212.5 L404.0,205.4 L408.0,197.9 L412.0,190.2 L416.0,182.3 L420.0,174.0 L424.0,165.5 L428.0,156.6 L432.0,147.5 L436.0,138.2 L440.0,128.5 L444.0,118.6 L448.0,108.3 L452.0,97.8 L456.0,87.1 L460.0,76.0" fill="none" stroke="#1f6feb" stroke-width="2.6"/>
+  <path d="M300,300 V60" stroke="#1f6feb" stroke-dasharray="4 4"/><path d="M100,300 V60" stroke="#f08c00" stroke-dasharray="4 4"/>
+  <circle cx="220" cy="174" r="4.5" fill="#f08c00"/>
+  <text x="238" y="196" font-size="11.5" fill="#d9480f">I<tspan baseline-shift="sub" font-size="8">DSS</tspan>=4.5A（V<tspan baseline-shift="sub" font-size="8">GS</tspan>=0 已导通）</text>
+  <text x="306" y="56" font-size="12" fill="#1f6feb">V<tspan baseline-shift="sub" font-size="8">th</tspan>=+2V</text>
+  <text x="106" y="56" font-size="12" fill="#d9480f">V<tspan baseline-shift="sub" font-size="8">P</tspan>=−3V</text>
+  <text x="400" y="100" font-size="13" fill="#1f6feb" font-weight="bold">增强型 NMOS</text>
+  <text x="400" y="116" font-size="11" fill="#1f6feb">V<tspan baseline-shift="sub" font-size="8">GS</tspan>=0 不导通</text>
+  <text x="70" y="140" font-size="13" fill="#d9480f" font-weight="bold">耗尽型 NMOS</text>
+  <text x="70" y="156" font-size="11" fill="#d9480f">需负压才能关断</text>
+</svg>
+<figcaption>图 4　转移特性（I<sub>D</sub>–V<sub>GS</sub>，饱和区）。增强型在 V<sub>th</sub> 之前电流为 0；耗尽型在 V<sub>GS</sub>=0 时已有 I<sub>DSS</sub>，负到 V<sub>P</sub> 才夹断。</figcaption>
+</figure>
+
+<div class="warn"><b>最容易混淆的地方：“饱和区”在 MOS 和三极管里意思正好相反。</b>
+<table>
+  <tr><th>器件</th><th>开关“完全导通”时所处区域</th><th>放大时所处区域</th></tr>
+  <tr><td>三极管 BJT</td><td><b>饱和区</b>（V<sub>CE</sub>≈0.2V）</td><td>放大区</td></tr>
+  <tr><td>MOS 管</td><td><b>线性区 / 欧姆区 / 可变电阻区</b>（V<sub>DS</sub> = I<sub>D</sub>·R<sub>DS(on)</sub>，很小）</td><td><b>饱和区</b>（恒流区）</td></tr>
+</table>
+知乎原文写“开关时选择饱和区、线性区执行放大功能”，是套用了三极管的叫法，按 MOS 的标准术语是<b>反的</b>。做开关时要让 MOS 尽快穿过饱和区，稳定在线性区；如果长时间停在饱和区，管子上同时有高电压和大电流，发热巨大（这正是开关损耗和“半导通烧管”的根源）。</div>
+
+<!-- ============================ 5 ============================ -->
+<h2 id="s5">5. 数据手册关键参数怎么看</h2>
+<p>数据手册一般有两张核心表：<b>Absolute Maximum Ratings（绝对最大额定值）</b>——任何时候都不能超过的极限；<b>Electrical Characteristics（电气特性）</b>——在规定测试条件下的典型/最小/最大值。以原文的 <b>NCEP039N10D</b> 为例：</p>
+<table>
+  <tr><th>参数</th><th>原文数值</th><th>含义</th><th>容易忽略的条件 / 我的理解</th></tr>
+  <tr><td>V<sub>DS</sub></td><td>100V</td><td>D-S 最大耐压</td><td>实际要留余量：一般工作电压 ≤ 70%~80% V<sub>DS</sub>。感性负载关断尖峰常比电源电压高很多，要算上尖峰。</td></tr>
+  <tr><td>V<sub>GS</sub></td><td>±20V</td><td>G-S 最大电压（正负都不能超）</td><td>栅氧化层只有几十 nm，超过即永久击穿。12V 以上驱动或高边 PMOS 要加稳压管/分压。</td></tr>
+  <tr><td>I<sub>D</sub></td><td>135A（T<sub>C</sub>=25℃）<br>108A（T<sub>C</sub>=100℃）</td><td>连续漏极电流</td><td><b>T<sub>C</sub> 是管壳温度</b>，25℃ 意味着“无限大散热器”，现实做不到。真实可用电流由散热决定，常常只有标称值的 1/3~1/2。</td></tr>
+  <tr><td>I<sub>DM</sub></td><td>540A</td><td>脉冲漏极电流</td><td>有脉宽限制（通常 ≤10μs~300μs），并受 SOA（安全工作区）约束。</td></tr>
+  <tr><td>P<sub>D</sub></td><td>220W</td><td>最大耗散功率</td><td>同样是 T<sub>C</sub>=25℃ 条件。真实允许功耗 P = (T<sub>j(max)</sub> − T<sub>a</sub>) / R<sub>θJA</sub>，不加散热片的 TO-220 只能扛 1~2W。</td></tr>
+  <tr><td>V<sub>GS(th)</sub></td><td>2~4V</td><td>开启阈值电压</td><td><b>这是“刚开始导通”的电压</b>（测试条件通常是 I<sub>D</sub>=250μA），不是“完全导通”的电压。且随温度升高而下降（约 −5mV/℃）。</td></tr>
+  <tr><td>R<sub>DS(on)</sub></td><td>3.5mΩ（典型）/ 3.9mΩ（最大）</td><td>导通电阻</td><td>要看测试条件 <b>V<sub>GS</sub>=10V</b>。V<sub>GS</sub>=4V 时远没有这么小。R<sub>DS(on)</sub> 在 125℃ 时约为 25℃ 的 1.5~2 倍，计算损耗要用高温值。</td></tr>
+  <tr><td>Q<sub>g</sub> / C<sub>iss</sub></td><td>（原文未列）</td><td>栅极总电荷 / 输入电容</td><td>决定驱动难度和开关速度。R<sub>DS(on)</sub> 越小的管子芯片越大，Q<sub>g</sub> 越大，二者需权衡。</td></tr>
+  <tr><td>t<sub>d(on)</sub>、t<sub>r</sub>、t<sub>d(off)</sub>、t<sub>f</sub></td><td>（原文有说明）</td><td>开关时间</td><td>手册值是在特定 R<sub>G</sub>、V<sub>DD</sub> 下测的，实际与驱动电路强相关。</td></tr>
+</table>
+
+<h3>用阈值电压判断“能不能被 MCU 直接驱动”</h3>
+<p>看 R<sub>DS(on)</sub> 表里<b>有没有给出 V<sub>GS</sub>=4.5V（5V 系统）或 2.5V（3.3V 系统）时的数值</b>。有，才叫“逻辑电平（Logic Level）MOS”，可以直驱。IRF540N、IRFZ44N 只标了 10V，3.3V/5V 单片机直驱时只能“半导通”，会严重发热。</p>
+
+<!-- ============================ 6 ============================ -->
+<h2 id="s6">6. 损耗：导通损耗与开关损耗</h2>
+<h3>6.1 导通损耗</h3>
+<p><span class="m">P<sub>cond</sub> = I<sub>D(rms)</sub>² × R<sub>DS(on)</sub></span>（注意是<b>电流的平方</b>，原文有一处漏写了平方）。PWM 时 I<sub>rms</sub>² ≈ I²·D（D 为占空比）。</p>
+<p>例：原文 NCEP039N10D 流过 1A：V<sub>DS</sub> = 1A × 3.5mΩ = 3.5mV，P = 1² × 3.5mΩ = 3.5mW（原文计算正确）。若流过 30A：P = 900 × 3.9mΩ × 1.7（高温系数）≈ 6W，就必须加散热片了。</p>
+
+<h3>6.2 开关损耗与米勒平台</h3>
+<figure>
+<svg viewBox="0 0 690 430" role="img" aria-label="MOS管开通过程波形与米勒平台">
+  <g stroke="#adb5bd" stroke-dasharray="4 4">
+    <path d="M80,20 V395 M170,20 V395 M250,20 V395 M360,20 V395 M470,20 V395"/>
+  </g>
+  <g font-size="12" fill="#495057" text-anchor="middle">
+    <text x="80" y="412">t0</text><text x="170" y="412">t1</text><text x="250" y="412">t2</text><text x="360" y="412">t3</text><text x="470" y="412">t4</text>
+  </g>
+  <!-- 基线 -->
+  <g stroke="#222" stroke-width="1"><path d="M60,110 H600 M60,200 H600 M60,290 H600 M60,380 H600"/></g>
+  <g font-size="13" font-weight="bold">
+    <text x="8" y="70" fill="#1f6feb">V<tspan baseline-shift="sub" font-size="9">GS</tspan></text>
+    <text x="8" y="165" fill="#2b8a3e">I<tspan baseline-shift="sub" font-size="9">D</tspan></text>
+    <text x="8" y="250" fill="#d9480f">V<tspan baseline-shift="sub" font-size="9">DS</tspan></text>
+    <text x="8" y="345" fill="#c92a2a">P=V·I</text>
+  </g>
+  <!-- VGS：RC 充电 -> 米勒平台 -> 继续充电 -->
+  <path d="M60,110 H80 Q120,92 170,88 Q215,80 250,72 H360 Q400,46 470,38 H600" fill="none" stroke="#1f6feb" stroke-width="2.6"/>
+  <path d="M60,88 H600" stroke="#1f6feb" stroke-dasharray="2 3" stroke-width="1"/><text x="604" y="92" font-size="11" fill="#1f6feb">V<tspan baseline-shift="sub" font-size="8">th</tspan></text>
+  <text x="305" y="66" font-size="11.5" fill="#1f6feb" text-anchor="middle">米勒平台 V<tspan baseline-shift="sub" font-size="8">GP</tspan></text>
+  <text x="604" y="42" font-size="11" fill="#1f6feb">V<tspan baseline-shift="sub" font-size="8">drv</tspan>(如10V)</text>
+  <!-- ID -->
+  <path d="M60,200 H170 L250,140 H600" fill="none" stroke="#2b8a3e" stroke-width="2.6"/>
+  <!-- VDS -->
+  <path d="M60,220 H250 L330,280 Q345,287 360,288 H600" fill="none" stroke="#d9480f" stroke-width="2.6"/>
+  <text x="604" y="292" font-size="11" fill="#d9480f">I·R<tspan baseline-shift="sub" font-size="8">DS(on)</tspan></text>
+  <!-- 功率 -->
+  <path d="M170,380 L250,322 L330,372 Q345,378 360,378 H600 V380 H170 Z" fill="#ffc9c9" stroke="#c92a2a" stroke-width="2"/>
+  <text x="250" y="316" font-size="12" fill="#c92a2a" text-anchor="middle">开通损耗 E<tspan baseline-shift="sub" font-size="8">on</tspan>（阴影面积）</text>
+  <text x="480" y="372" font-size="11" fill="#c92a2a">之后只剩导通损耗 I²R</text>
+  <!-- 阶段说明 -->
+  <g font-size="11.5" fill="#343a40" text-anchor="middle">
+    <text x="125" y="18">① 充 C<tspan baseline-shift="sub" font-size="8">gs</tspan></text>
+    <text x="210" y="18">② I<tspan baseline-shift="sub" font-size="8">D</tspan> 上升</text>
+    <text x="305" y="18">③ 米勒平台</text>
+    <text x="415" y="18">④ 继续充满</text>
+  </g>
+</svg>
+<figcaption>图 5　感性负载（带续流二极管）下 MOS 开通过程示意。② 段电流上升、电压仍高；③ 段 V<sub>DS</sub> 下降，驱动电流全部用来给 C<sub>gd</sub>（米勒电容）放电，V<sub>GS</sub> 停在平台不动。②③ 两段 V 与 I 同时存在，就是开关损耗的来源。关断过程是逆序的镜像。</figcaption>
+</figure>
+<ul>
+  <li><b>开关损耗的本质是“电压和电流有重叠时间”</b>，米勒平台会延长这段重叠，是重要原因但不是唯一原因（原文说“由米勒平台造成”不够全面）。</li>
+  <li>估算：<span class="m">P<sub>sw</sub> ≈ ½ · V<sub>DS</sub> · I<sub>D</sub> · (t<sub>r</sub> + t<sub>f</sub>) · f<sub>sw</sub></span></li>
+  <li>此外还有：输出电容损耗 <span class="m">½·C<sub>oss</sub>·V²·f</span>、栅极驱动损耗 <span class="m">Q<sub>g</sub>·V<sub>drv</sub>·f</span>（消耗在驱动电阻上）、体二极管反向恢复损耗。</li>
+  <li>原文写“V<sub>GS</sub> 和 I<sub>D</sub> 的乘积表示瞬时功率”是笔误，应为 <b>V<sub>DS</sub> × I<sub>D</sub></b>。</li>
+</ul>
+<div class="tip"><b>算一个完整例子：</b>12V、10A、f=100kHz、占空比 50%、t<sub>r</sub>+t<sub>f</sub>=40ns、R<sub>DS(on)</sub>=10mΩ（高温）、Q<sub>g</sub>=40nC、驱动 10V。<br>
+导通：10² × 0.01 × 0.5 = <b>0.5W</b>；开关：0.5 × 12 × 10 × 40ns × 100k = <b>0.24W</b>；驱动：40nC × 10V × 100k = 0.04W（耗在驱动侧）。<br>
+频率升到 500kHz，开关损耗变成 1.2W，超过导通损耗。<b>低频看 R<sub>DS(on)</sub>，高频看 Q<sub>g</sub> 和开关速度</b>。</div>
+<p><b>驱动电流估算：</b>想在 t 时间内开通，平均栅极电流 I<sub>g</sub> ≈ Q<sub>g</sub> / t。例如 Q<sub>g</sub>=70nC、要求 100ns 开通，需要约 0.7A。单片机 IO 只有几 mA~20mA，所以高频大功率必须用驱动芯片（如 TC4420、IR2104、UCC27517 等）。</p>
+
+<!-- ============================ 7 ============================ -->
+<h2 id="s7">7. 典型应用电路</h2>
+<h3>7.1 低边 NMOS 驱动电机 / 继电器 / LED 灯带（最常用）</h3>
+<figure>
+<svg viewBox="0 0 600 370" role="img" aria-label="低边NMOS驱动电机电路">
+  <g fill="none" stroke="#222" stroke-width="2">
+    <!-- 电源轨 -->
+    <path d="M380,40 H460 V95"/><path d="M380,40 V82"/>
+    <circle cx="380" cy="110" r="28"/>
+    <path d="M380,138 V195"/>
+    <!-- 续流二极管：阴极接 +V -->
+    <path d="M448,95 H472"/><path d="M460,125 V195 H380"/>
+  </g>
+  <path d="M448,125 L472,125 L460,95 Z" fill="#222"/>
+  <circle cx="380" cy="40" r="3" fill="#222"/><circle cx="380" cy="195" r="3" fill="#222"/>
+  <text x="380" y="117" font-size="22" text-anchor="middle" font-weight="bold">M</text>
+  <text x="340" y="30" font-size="13">+V<tspan baseline-shift="sub" font-size="9">M</tspan>（如 12V）</text>
+  <text x="482" y="108" font-size="12">D1 续流二极管</text>
+  <text x="482" y="124" font-size="11" fill="#57606a">（如 SS34 / 1N5819）</text>
+  <!-- NMOS：D(380,195) S(380,305) G(305,270) -->
+  <g transform="translate(300,190)"><use href="#nmos-pwr"/></g>
+  <text x="388" y="226" font-size="13" font-weight="bold">D</text><text x="388" y="290" font-size="13" font-weight="bold">S</text>
+  <text x="300" y="262" font-size="13" font-weight="bold">G</text>
+  <text x="430" y="255" font-size="12">Q1 NMOS</text>
+  <!-- 栅极回路 -->
+  <rect x="40" y="250" width="110" height="40" rx="5" fill="#e7f5ff" stroke="#1f6feb"/>
+  <text x="95" y="268" font-size="12" text-anchor="middle">MCU / PWM</text>
+  <text x="95" y="283" font-size="11" text-anchor="middle" fill="#57606a">3.3V 或 5V</text>
+  <g fill="none" stroke="#222" stroke-width="2">
+    <path d="M150,270 H175"/><rect x="175" y="262" width="50" height="16" fill="#fff"/><path d="M225,270 H305"/>
+    <path d="M265,270 V285"/><rect x="257" y="285" width="16" height="40" fill="#fff"/><path d="M265,325 V340 H380 V305"/>
+  </g>
+  <circle cx="265" cy="270" r="3" fill="#222"/><circle cx="380" cy="340" r="3" fill="#222"/>
+  <text x="200" y="254" font-size="12" text-anchor="middle">R<tspan baseline-shift="sub" font-size="8">G</tspan> 10~100Ω</text>
+  <text x="200" y="296" font-size="11" text-anchor="middle" fill="#57606a">限流、抑制振铃</text>
+  <text x="280" y="312" font-size="12">R<tspan baseline-shift="sub" font-size="8">GS</tspan> 10kΩ</text>
+  <text x="130" y="358" font-size="11" fill="#57606a">下拉，上电/悬空时保证关断</text>
+  <!-- 地 -->
+  <g stroke="#222" stroke-width="2"><path d="M380,340 V350 M364,350 H396 M369,356 H391 M375,362 H385"/></g>
+</svg>
+<figcaption>图 6　低边 NMOS 开关。S 接地，所以 V<sub>GS</sub> 就等于 MCU 输出电压，最容易驱动。</figcaption>
+</figure>
+<ul>
+  <li><b>续流二极管 D1 必须有</b>：电机、继电器、电磁阀是感性负载，关断瞬间电流不能突变，会在 D 极产生很高的反电动势尖峰，没有 D1 就会击穿 MOS。D1 阴极接电源正、阳极接 D 极。</li>
+  <li><b>R<sub>GS</sub> 下拉必须有</b>：MCU 复位期间 IO 为高阻，栅极悬空会被感应电荷打开。</li>
+  <li>MCU 是 3.3V 时，Q1 选 AO3400、IRLML6344 这类逻辑电平管；用 IRF540N/IRFZ44N 必须加一级 12V 驱动（三极管图腾柱或驱动芯片）。</li>
+  <li>原文例子用 1k/9k 分压：10V × 9k/(1k+9k) = 9V，计算正确；9k 同时起到下拉作用。但 1kΩ 的栅极电阻对高频 PWM 偏大，开关会变慢、发热，几十 kHz 以上建议换成 10~100Ω。</li>
+</ul>
+
+<h3>7.2 高边 PMOS 电源开关</h3>
+<figure>
+<svg viewBox="0 0 600 300" role="img" aria-label="高边PMOS电源开关">
+  <g fill="none" stroke="#222" stroke-width="2">
+    <path d="M200,30 H470"/>
+    <!-- R1 上拉 G-S -->
+    <path d="M260,30 V38"/><rect x="252" y="38" width="16" height="30" fill="#fff"/><path d="M260,68 V80 H305"/>
+    <!-- R2 到 NPN 集电极 -->
+    <path d="M260,80 V95"/><rect x="252" y="95" width="16" height="30" fill="#fff"/><path d="M260,125 V165"/>
+    <!-- NPN -->
+    <path d="M240,160 V200"/><path d="M240,172 L260,165"/><path d="M240,188 L260,198 V230"/>
+    <path d="M150,180 H175"/><rect x="175" y="172" width="40" height="16" fill="#fff"/><path d="M215,180 H240"/>
+    <!-- 负载 -->
+    <path d="M380,170 V185"/><rect x="365" y="185" width="30" height="45" fill="#fff"/><path d="M380,230 V250"/>
+    <path d="M260,230 V250 H380"/>
+  </g>
+  <path d="M260,198 L249,198 L255,190 Z" fill="#222"/>
+  <circle cx="260" cy="30" r="3" fill="#222"/><circle cx="260" cy="80" r="3" fill="#222"/><circle cx="380" cy="30" r="3" fill="#222"/>
+  <!-- PMOS：S 在上 (380,45) ，G(305,80)，D(380,155) -->
+  <g transform="translate(300,40) translate(0,120) scale(1,-1)"><use href="#pmos-pwr"/></g>
+  <path d="M380,30 V45 M380,155 V170" stroke="#222" stroke-width="2"/>
+  <text x="200" y="22" font-size="13">+V<tspan baseline-shift="sub" font-size="9">IN</tspan>（如 12V）</text>
+  <text x="362" y="58" font-size="13" font-weight="bold">S</text><text x="362" y="148" font-size="13" font-weight="bold">D</text>
+  <text x="292" y="74" font-size="13" font-weight="bold">G</text>
+  <text x="430" y="104" font-size="12">Q1 PMOS</text>
+  <text x="205" y="58" font-size="11.5">R1 10k</text><text x="190" y="115" font-size="11.5">R2 1k~10k</text>
+  <text x="170" y="166" font-size="11.5">R<tspan baseline-shift="sub" font-size="8">B</tspan> 4.7k</text>
+  <text x="268" y="185" font-size="11.5">Q2 NPN</text><text x="268" y="200" font-size="10.5" fill="#57606a">（如 S8050）</text>
+  <rect x="50" y="160" width="100" height="40" rx="5" fill="#e7f5ff" stroke="#1f6feb"/>
+  <text x="100" y="185" font-size="12" text-anchor="middle">MCU 使能</text>
+  <text x="405" y="212" font-size="12">负载</text>
+  <g stroke="#222" stroke-width="2"><path d="M320,250 V258 M304,258 H336 M309,264 H331 M315,270 H325"/></g>
+  <text x="300" y="292" font-size="11.5" fill="#57606a" text-anchor="middle">MCU 高 → Q2 导通 → G 被拉低 → V<tspan baseline-shift="sub" font-size="8">GS</tspan>=−V<tspan baseline-shift="sub" font-size="8">IN</tspan>·R1/(R1+R2) → Q1 导通</text>
+</svg>
+<figcaption>图 7　高边 PMOS 开关。PMOS 的 S 接电源，G 比 S 低足够多才导通。V<sub>IN</sub> &gt; 20V 时必须用 R1/R2 分压或在 G-S 间加 12~15V 稳压管，防止 V<sub>GS</sub> 超过 ±20V。</figcaption>
+</figure>
+<p>为什么不直接让 MCU 驱动 PMOS 的栅极？因为 PMOS 关断需要 V<sub>G</sub>≈V<sub>IN</sub>（12V），3.3V 的 IO 根本拉不上去，所以要用 Q2 做电平转换。高边如果要用 NMOS（电流大时更划算），栅极必须比电源还高约 10V，需要自举或电荷泵驱动芯片（如 IR2104、LTC7004）。</p>
+
+<!-- ============================ 8 ============================ -->
+<h2 id="s8">8. 封装与引脚</h2>
+<p>常见封装：通孔类 TO-92、TO-220、TO-247、TO-251；贴片类 SOT-23、SOT-223、SO-8、TO-252（D-PAK）、TO-263（D²PAK）、PDFN/PQFN 3×3、5×6；以及 DirectFET 等特殊封装。<b>大功率封装的金属散热片/底部焊盘几乎都是 D 极</b>，装散热器时要注意绝缘（垫片+绝缘粒）。</p>
+<figure>
+<svg viewBox="0 0 780 260" role="img" aria-label="常见MOS封装引脚图">
+  <!-- TO-220 -->
+  <g transform="translate(0,0)">
+    <rect x="30" y="20" width="90" height="42" fill="#ced4da" stroke="#495057"/><circle cx="75" cy="38" r="9" fill="#fff" stroke="#495057"/>
+    <rect x="30" y="60" width="90" height="70" rx="3" fill="#343a40"/><text x="75" y="100" fill="#fff" font-size="11" text-anchor="middle">IRF540N</text>
+    <g fill="#adb5bd"><rect x="47" y="130" width="7" height="55"/><rect x="72" y="130" width="7" height="55"/><rect x="97" y="130" width="7" height="55"/></g>
+    <g font-size="13" font-weight="bold" text-anchor="middle"><text x="50" y="203">G</text><text x="75" y="203">D</text><text x="100" y="203">S</text></g>
+    <g font-size="10" text-anchor="middle" fill="#57606a"><text x="50" y="216">1</text><text x="75" y="216">2</text><text x="100" y="216">3</text></g>
+    <text x="75" y="236" font-size="12" text-anchor="middle">TO-220（字面朝自己）</text><text x="75" y="252" font-size="11" text-anchor="middle" fill="#c92a2a">散热片 = D</text>
+  </g>
+  <!-- TO-92 -->
+  <g transform="translate(155,0)">
+    <path d="M40,120 V75 A35,35 0 0 1 110,75 V120 Z" fill="#343a40"/><text x="75" y="100" fill="#fff" font-size="10" text-anchor="middle">平面朝自己</text>
+    <g fill="#adb5bd"><rect x="52" y="120" width="5" height="60"/><rect x="72" y="120" width="5" height="60"/><rect x="92" y="120" width="5" height="60"/></g>
+    <g font-size="12" text-anchor="middle"><text x="0" y="215" text-anchor="start" font-size="10.5">2N7000</text><text x="55" y="215" font-weight="bold">S</text><text x="75" y="215" font-weight="bold">G</text><text x="95" y="215" font-weight="bold">D</text></g>
+    <g font-size="12" text-anchor="middle" fill="#c92a2a"><text x="0" y="230" text-anchor="start" font-size="10.5">BS170</text><text x="55" y="230" font-weight="bold">D</text><text x="75" y="230" font-weight="bold">G</text><text x="95" y="230" font-weight="bold">S</text></g>
+    <text x="75" y="252" font-size="11" text-anchor="middle" fill="#c92a2a">两者引脚顺序相反！</text>
+  </g>
+  <!-- SOT-23 -->
+  <g transform="translate(310,0)">
+    <g fill="#adb5bd"><rect x="71" y="45" width="8" height="25"/><rect x="51" y="110" width="8" height="25"/><rect x="91" y="110" width="8" height="25"/></g>
+    <rect x="40" y="70" width="70" height="40" rx="3" fill="#343a40"/><text x="75" y="94" fill="#fff" font-size="10" text-anchor="middle">A09T</text>
+    <g font-size="12" font-weight="bold" text-anchor="middle"><text x="75" y="38">3 D</text><text x="55" y="152">1 G</text><text x="95" y="152">2 S</text></g>
+    <text x="75" y="236" font-size="12" text-anchor="middle">SOT-23（顶视图）</text>
+    <text x="75" y="252" font-size="10.5" text-anchor="middle" fill="#57606a">AO3400/2N7002/BSS138 通用</text>
+  </g>
+  <!-- SO-8 -->
+  <g transform="translate(465,0)">
+    <g fill="#adb5bd">
+      <rect x="28" y="40" width="17" height="7"/><rect x="28" y="70" width="17" height="7"/><rect x="28" y="100" width="17" height="7"/><rect x="28" y="130" width="17" height="7"/>
+      <rect x="105" y="40" width="17" height="7"/><rect x="105" y="70" width="17" height="7"/><rect x="105" y="100" width="17" height="7"/><rect x="105" y="130" width="17" height="7"/>
+    </g>
+    <rect x="45" y="30" width="60" height="118" rx="3" fill="#343a40"/><circle cx="56" cy="42" r="4" fill="#868e96"/>
+    <g font-size="11" font-weight="bold"><text x="0" y="48">1 S</text><text x="0" y="78">2 S</text><text x="0" y="108">3 S</text><text x="0" y="138">4 G</text>
+      <text x="126" y="48">8 D</text><text x="126" y="78">7 D</text><text x="126" y="108">6 D</text><text x="126" y="138">5 D</text></g>
+    <text x="75" y="236" font-size="12" text-anchor="middle">SO-8 单管（顶视图）</text>
+    <text x="75" y="252" font-size="10.5" text-anchor="middle" fill="#57606a">双管型号引脚不同，查手册</text>
+  </g>
+  <!-- TO-252 -->
+  <g transform="translate(620,0)">
+    <rect x="45" y="22" width="60" height="30" fill="#ced4da" stroke="#495057"/>
+    <rect x="35" y="50" width="80" height="70" rx="3" fill="#343a40"/>
+    <g fill="#adb5bd"><rect x="46" y="120" width="8" height="40"/><rect x="72" y="120" width="6" height="10"/><rect x="96" y="120" width="8" height="40"/></g>
+    <g font-size="12" font-weight="bold" text-anchor="middle"><text x="50" y="178">G</text><text x="75" y="145" font-size="10">D</text><text x="100" y="178">S</text><text x="75" y="42" fill="#c92a2a">D</text></g>
+    <text x="75" y="236" font-size="12" text-anchor="middle">TO-252 / D-PAK</text>
+    <text x="75" y="252" font-size="10.5" text-anchor="middle" fill="#57606a">中脚剪短，散热焊盘 = D</text>
+  </g>
+</svg>
+<figcaption>图 8　常见封装引脚。以上是最常见的排列，<b>不同厂家可能不同，最终以数据手册为准</b>。</figcaption>
+</figure>
+
+<!-- ============================ 9 ============================ -->
+<h2 id="errata">9. 原文勘误</h2>
+<table>
+  <tr><th style="width:9%">出处</th><th style="width:33%">原文说法</th><th>问题与正确说法</th></tr>
+  <tr><td>知乎</td><td>“增强型：栅极没有电压时通道显示最大电导…”；“耗尽型：栅极没有电压时器件不导通…”</td><td><b>两者说反了</b>（评论区也有人指出）。正确：增强型 V<sub>GS</sub>=0 时<b>不导通</b>；耗尽型 V<sub>GS</sub>=0 时<b>导通</b>。</td></tr>
+  <tr><td>知乎</td><td>“D-MOS 永远不会完全导通”</td><td>错误。耗尽型 V<sub>GS</sub>=0 时就导通，NMOS 再加正压还能进一步增强。</td></tr>
+  <tr><td>知乎</td><td>“N 沟道与 P 沟道的主要区别：N 沟道开关保持打开直到提供栅极电压，P 沟道保持关闭直到提供栅极电压”</td><td>这描述的是增强型/耗尽型（常闭/常通）的区别，不是 N/P 的区别。<b>N/P 的真正区别</b>：载流子（电子/空穴）不同、导通所需 V<sub>GS</sub> 极性相反（N 正、P 负）、PMOS 同规格 R<sub>DS(on)</sub> 更大；增强型 N、P 管在 V<sub>GS</sub>=0 时都是关断的。</td></tr>
+  <tr><td>知乎</td><td>“耗尽型 MOS 中 G、D、S 是物理连接的，所以增强型的符号出现断开”</td><td>错误。任何 MOS 的栅极都与沟道绝缘。符号中的实线/虚线表示的是<b>零偏时沟道是否存在</b>，与 G 是否连接无关。</td></tr>
+  <tr><td>知乎</td><td>增强型原理：“当栅源之间没有施加电压时，由于漏源电压，一些电流会流动”；“少数载流子即空穴被排斥，多数载流子即电子被吸引”</td><td>增强型 V<sub>GS</sub>=0 时没有电流（这段是从耗尽型复制过来的）。在 P 型衬底中<b>空穴是多子、电子是少子</b>，原文把多子/少子说反了。</td></tr>
+  <tr><td>知乎</td><td>“SiO₂ 衬底连接到公共或接地端子”</td><td>应为“<b>衬底（Body）</b>连接到源极/地”，SiO₂ 是绝缘层，不接任何端子。</td></tr>
+  <tr><td>知乎</td><td>“饱和区…器件用作闭合开关，因此当器件应执行切换时选择饱和区”；“线性区执行放大器功能”</td><td>套用了三极管术语。按 MOS 标准术语：<b>开关导通工作在线性（欧姆）区，放大工作在饱和区</b>。详见第 4 节。</td></tr>
+  <tr><td>知乎</td><td>“增强型 MOS 管的特性曲线图”中画出了 V<sub>GS</sub>=0V 时仍有 I<sub>D</sub></td><td>V<sub>GS</sub>=0 仍有电流是<b>耗尽型</b>特征。增强型在 V<sub>GS</sub>&lt;V<sub>th</sub> 时曲线贴着横轴。另外该图横轴 8 之后直接标 12，刻度也有误。</td></tr>
+  <tr><td>知乎</td><td>“P 沟道 MOS：栅极比 V<sub>DD</sub> 负时增强，比 V<sub>DD</sub> 正时耗尽，两种类型都可以在两种模式中使用”</td><td>只有耗尽型能工作于两种模式；增强型只能工作于增强模式（文章前面自己也这样说过，前后矛盾）。参考点应是<b>源极</b>，不是 V<sub>DD</sub>。</td></tr>
+  <tr><td>知乎</td><td>“MOS 芯片面积仅为 BJT 的 5%”</td><td>没有统一依据，与工艺和规格相关，不宜当结论记。</td></tr>
+  <tr><td>电子工程专辑</td><td>“当 G 处电压高于 S 处电压 4V 时，D 和 S 之间肯定是导通的，DS 电阻为 3~4mΩ”</td><td>V<sub>GS(th)</sub>=2~4V 是在 I<sub>D</sub>=250μA 下定义的，<b>只代表刚开始导通</b>。3.5~3.9mΩ 是 <b>V<sub>GS</sub>=10V</b> 时的值。V<sub>GS</sub>=4V 时内阻可能大几十倍，大电流下会烧管。</td></tr>
+  <tr><td>电子工程专辑</td><td>“VGS(th) 为 5V（即 G 高于 S 5V 时 D 与 S 导通）”，示例中用 9V 驱动</td><td>同上，示例 9V 驱动能用，但原理表述应为“V<sub>GS</sub> 远大于 V<sub>th</sub>（一般取 10V）才能完全导通”。</td></tr>
+  <tr><td>电子工程专辑</td><td>“GS 之间压差不能超过 20V（G 极不能超过 S 极 20V，同样 S 极也不能超过 S 极 20V）”</td><td>笔误，应为“S 极也不能超过 <b>G 极</b> 20V”。</td></tr>
+  <tr><td>电子工程专辑</td><td>“在 DS 之上的功率不能超过 220W”；“持续电流不能超过 135A”</td><td>都是 T<sub>C</sub>=25℃（理想散热）条件下的值，实际设计远小于此。</td></tr>
+  <tr><td>电子工程专辑</td><td>导通损耗公式 “P = Id × RDS(on)”</td><td>漏了平方，应为 <b>P = I<sub>D</sub>² × R<sub>DS(on)</sub></b>（文中示例算的是 5×5×0.1，计算本身是对的）。</td></tr>
+  <tr><td>电子工程专辑</td><td>“VGS 和 ID 的乘积表示瞬时功率”</td><td>应为 <b>V<sub>DS</sub> × I<sub>D</sub></b>。</td></tr>
+  <tr><td>电子工程专辑</td><td>“开关损耗（米勒平台原因造成）”</td><td>根本原因是开关过渡期间电压电流重叠；米勒平台延长了重叠时间。还应包括 C<sub>oss</sub> 损耗、驱动损耗和体二极管反向恢复损耗。</td></tr>
+  <tr><td>电子工程专辑</td><td>“RDS 越小代表 MOS 管性能越优越”</td><td>不全面。R<sub>DS(on)</sub> 小通常意味着芯片大、Q<sub>g</sub> 和电容大、价格高，高频下未必更好。</td></tr>
+  <tr><td>电子工程专辑</td><td>“栅源极电压（VGS(th)）…不同类型具有不同的 VGS 范围”</td><td>名称应为<b>栅源阈值电压</b>（开启电压），和上一条的 V<sub>GS</sub>（栅源最大电压）是两个不同参数。</td></tr>
+</table>
+<p class="src">两篇文章正确的部分：MOS 是电压控制型器件；功率 MOS 有不可避免的寄生体二极管；符号识别口诀（交线为 S、箭头指向 G 侧为 N 沟道）；电机例子的分压计算 9V 和体二极管方向；开关损耗随频率升高而成为主导等。</p>
+
+<!-- ============================ 10 ============================ -->
+<h2 id="s10">10. 如何检测 MOS 管好坏</h2>
+<p>工具：数字万用表（<b>二极管档</b>，红表笔为正，开路电压约 2.5~3V）。以下以 TO-220 的 N 沟道增强型功率管（如 IRF540N，引脚 G-D-S）为例。<b>务必离板测量</b>，在板测量会被外围电路干扰。</p>
+<figure>
+<svg viewBox="0 0 780 215" role="img" aria-label="万用表检测MOS管五个步骤">
+  <defs>
+    <g id="pkg">
+      <rect x="25" y="18" width="100" height="40" rx="4" fill="#343a40"/>
+      <text x="75" y="43" fill="#fff" font-size="11" text-anchor="middle">NMOS</text>
+      <g stroke="#adb5bd" stroke-width="5"><path d="M40,58 V72 M75,58 V72 M110,58 V72"/></g>
+      <g fill="#fff" stroke="#495057" stroke-width="1.5"><circle cx="40" cy="78" r="8"/><circle cx="75" cy="78" r="8"/><circle cx="110" cy="78" r="8"/></g>
+      <g font-size="10" font-weight="bold" text-anchor="middle"><text x="40" y="82">G</text><text x="75" y="82">D</text><text x="110" y="82">S</text></g>
+    </g>
+  </defs>
+  <!-- ① 放电 -->
+  <g transform="translate(0,0)"><use href="#pkg"/>
+    <path d="M40,90 Q75,110 110,90" fill="none" stroke="#f08c00" stroke-width="3"/>
+    <text x="75" y="128" font-size="11" text-anchor="middle" fill="#d9480f">镊子短接三脚</text>
+    <text x="75" y="160" font-size="12.5" font-weight="bold" text-anchor="middle">① 放电</text>
+    <text x="75" y="178" font-size="11" text-anchor="middle" fill="#57606a">清除栅极残留电荷</text>
+  </g>
+  <!-- ② 测体二极管 -->
+  <g transform="translate(155,0)"><use href="#pkg"/>
+    <path d="M110,86 V112" stroke="#e03131" stroke-width="3"/><circle cx="110" cy="118" r="7" fill="#e03131"/><text x="110" y="122" font-size="10" fill="#fff" text-anchor="middle">+</text>
+    <path d="M75,86 V112" stroke="#222" stroke-width="3"/><circle cx="75" cy="118" r="7" fill="#222"/><text x="75" y="122" font-size="10" fill="#fff" text-anchor="middle">−</text>
+    <text x="75" y="160" font-size="12.5" font-weight="bold" text-anchor="middle">② 红S 黑D</text>
+    <text x="75" y="178" font-size="11" text-anchor="middle" fill="#2b8a3e">显示 0.4~0.7V</text>
+    <text x="75" y="194" font-size="10.5" text-anchor="middle" fill="#57606a">体二极管正常；反接应 OL</text>
+  </g>
+  <!-- ③ 触发 -->
+  <g transform="translate(310,0)"><use href="#pkg"/>
+    <path d="M40,86 V112" stroke="#e03131" stroke-width="3"/><circle cx="40" cy="118" r="7" fill="#e03131"/><text x="40" y="122" font-size="10" fill="#fff" text-anchor="middle">+</text>
+    <path d="M110,86 V112" stroke="#222" stroke-width="3"/><circle cx="110" cy="118" r="7" fill="#222"/><text x="110" y="122" font-size="10" fill="#fff" text-anchor="middle">−</text>
+    <text x="75" y="160" font-size="12.5" font-weight="bold" text-anchor="middle">③ 红G 黑S（触发）</text>
+    <text x="75" y="178" font-size="11" text-anchor="middle" fill="#2b8a3e">显示 OL</text>
+    <text x="75" y="194" font-size="10.5" text-anchor="middle" fill="#57606a">给栅电容充上约 2.5V+</text>
+  </g>
+  <!-- ④ 测导通 -->
+  <g transform="translate(465,0)"><use href="#pkg"/>
+    <path d="M75,86 V112" stroke="#e03131" stroke-width="3"/><circle cx="75" cy="118" r="7" fill="#e03131"/><text x="75" y="122" font-size="10" fill="#fff" text-anchor="middle">+</text>
+    <path d="M110,86 V112" stroke="#222" stroke-width="3"/><circle cx="110" cy="118" r="7" fill="#222"/><text x="110" y="122" font-size="10" fill="#fff" text-anchor="middle">−</text>
+    <text x="75" y="160" font-size="12.5" font-weight="bold" text-anchor="middle">④ 红D 黑S</text>
+    <text x="75" y="178" font-size="11" text-anchor="middle" fill="#2b8a3e">读数很小（几~几百 mV）</text>
+    <text x="75" y="194" font-size="10.5" text-anchor="middle" fill="#57606a">说明 G 能控制 D-S 导通</text>
+  </g>
+  <!-- ⑤ 关断 -->
+  <g transform="translate(620,0)"><use href="#pkg"/>
+    <path d="M40,90 Q75,104 110,90" fill="none" stroke="#f08c00" stroke-width="3" stroke-dasharray="5 3"/>
+    <path d="M75,86 V112" stroke="#e03131" stroke-width="3"/><circle cx="75" cy="118" r="7" fill="#e03131"/><text x="75" y="122" font-size="10" fill="#fff" text-anchor="middle">+</text>
+    <path d="M110,96 V112" stroke="#222" stroke-width="3"/><circle cx="110" cy="118" r="7" fill="#222"/><text x="110" y="122" font-size="10" fill="#fff" text-anchor="middle">−</text>
+    <text x="75" y="160" font-size="12.5" font-weight="bold" text-anchor="middle">⑤ 短接G-S后再测D-S</text>
+    <text x="75" y="178" font-size="11" text-anchor="middle" fill="#2b8a3e">恢复 OL</text>
+    <text x="75" y="194" font-size="10.5" text-anchor="middle" fill="#57606a">能开能关 = 基本是好管</text>
+  </g>
+</svg>
+<figcaption>图 9　数字万用表二极管档检测 N 沟道增强型 MOS（红=表笔正，黑=表笔负）。P 沟道管把所有表笔方向反过来：体二极管为“红 D 黑 S”导通，触发为“黑 G 红 S”。</figcaption>
+</figure>
+
+<h3>10.1 详细步骤与判断</h3>
+<table>
+  <tr><th>步骤</th><th>操作</th><th>正常现象</th><th>异常与结论</th></tr>
+  <tr><td>① 放电</td><td>用镊子/导线同时短接 G、D、S</td><td>—</td><td>不放电的话，上次测量残留的栅极电荷会让管子保持导通，造成“D-S 短路”的误判。</td></tr>
+  <tr><td>② 体二极管</td><td>红 S 黑 D；再反过来测</td><td>正向 0.4~0.7V（大电流管偏低，约 0.4~0.5V）；反向 OL</td><td>两个方向都接近 0 → <b>D-S 击穿短路</b>（最常见的损坏方式）；两个方向都 OL → 内部开路。</td></tr>
+  <tr><td>③ 栅极绝缘 + 触发</td><td>G-D 正反、G-S 正反各测一次，<b>最后一次停在“红 G 黑 S”</b></td><td>全部 OL（无穷大）；最后一次同时给栅电容充上了正电压</td><td>任一组有读数或接近 0 → <b>栅极击穿</b>，坏。</td></tr>
+  <tr><td>④ 测导通</td><td>手不要碰 G，红 D 黑 S</td><td>读数从 OL 变成很小（几 mV~几百 mV）</td><td>仍为 OL → 可能 V<sub>th</sub> 高于表笔电压（换 9V 电池串 10kΩ 电阻触发 G-S），或管子已失效。</td></tr>
+  <tr><td>⑤ 关断</td><td>短接 G-S 放电，再测 D-S（红 D 黑 S）</td><td>恢复 OL</td><td>仍导通 → 漏电/损坏。</td></tr>
+</table>
+
+<h3>10.2 用测量结果反推引脚和类型（不知道型号时）</h3>
+<ol>
+  <li>两两测量 6 次（<b>每次测量前都短接放电</b>，否则栅极被充电后 D-S 会导通干扰判断）。<b>只有一次</b>有 0.4~0.7V 读数，这两只脚就是 D 和 S，剩下的是 <b>G</b>。</li>
+  <li>有读数那一次：红笔接的是 S、黑笔接的是 D → <b>N 沟道</b>；红笔接的是 D、黑笔接的是 S → <b>P 沟道</b>（因为二极管档红笔接阳极才导通）。</li>
+  <li>功率管通常散热片=D，可以互相印证。</li>
+</ol>
+
+<h3>10.3 更可靠的方法</h3>
+<ul>
+  <li><b>晶体管测试仪</b>（LCR-T4、TC1、TC-1 等，几十元）：插上即自动识别 N/P、引脚、V<sub>th</sub>、C<sub>gs</sub>、体二极管压降，非常适合新手批量筛选。</li>
+  <li><b>实际导通电阻测试</b>（最能识别假货/翻新）：G-S 加 10V，D-S 串限流电源通 1~5A，量 V<sub>DS</sub>，计算 R = V<sub>DS</sub>/I<sub>D</sub>，与手册对比。万用表能“开能关”只说明没击穿，<b>不能</b>说明 R<sub>DS(on)</sub>、耐压、电流达标。</li>
+  <li><b>耐压测试</b>：需要专用耐压测试仪/晶体管图示仪，按 I<sub>DSS</sub> 条件测击穿电压。</li>
+  <li><b>指针式万用表</b>注意：电阻档<b>黑表笔是正</b>，与数字表相反。</li>
+  <li><b>在板快速判断</b>：断电后测 D-S，若正反都接近 0Ω，大概率击穿；拆下复测确认。烧坏的 MOS 常伴随驱动电阻、驱动芯片一起损坏，换管前要一并检查。</li>
+</ul>
+<div class="warn">测量时人体静电可能击穿栅极（尤其 SOT-23 小管子）。冬天干燥时先摸一下接地金属，或佩戴防静电手环。</div>
+
+<!-- ============================ 11 ============================ -->
+<h2 id="s11">11. 常见型号、参数与参考价格</h2>
+<p class="src">参数取自各型号数据手册的典型/最大值（I<sub>D</sub> 均为 T<sub>C</sub>=25℃），不同厂家同名型号会有差异。价格为 2026 年国内零售小批量（立创商城 / 淘宝）的大致区间，未逐一实时核对，原装与国产兼容品差价可达数倍，下单前请以实际报价为准。</p>
+<table>
+  <tr><th>型号</th><th>类型</th><th>V<sub>DS</sub></th><th>I<sub>D</sub></th><th>R<sub>DS(on)</sub></th><th>V<sub>GS(th)</sub></th><th>V<sub>GS</sub>最大</th><th>封装</th><th>典型用途</th><th>参考价/只</th></tr>
+  <tr><td>2N7002</td><td>N</td><td>60V</td><td>0.115~0.3A</td><td>≤7.5Ω@10V</td><td>1~2.5V</td><td>±20V</td><td>SOT-23</td><td>信号切换、小负载</td><td>¥0.02~0.05</td></tr>
+  <tr><td>BSS138</td><td>N</td><td>50V</td><td>0.22A</td><td>≤3.5Ω@10V</td><td>0.8~1.5V</td><td>±20V</td><td>SOT-23</td><td>I²C 3.3V↔5V 电平转换</td><td>¥0.03~0.1</td></tr>
+  <tr><td>2N7000</td><td>N</td><td>60V</td><td>0.2A</td><td>≤5Ω@10V</td><td>0.8~3V</td><td>±20V</td><td>TO-92（S-G-D）</td><td>面包板实验</td><td>¥0.1~0.3</td></tr>
+  <tr><td>BS170</td><td>N</td><td>60V</td><td>0.5A</td><td>≤5Ω@10V</td><td>0.8~3V</td><td>±20V</td><td>TO-92（D-G-S）</td><td>同上，注意引脚</td><td>¥0.2~0.5</td></tr>
+  <tr><td>AO3400A</td><td>N 逻辑电平</td><td>30V</td><td>5.7A</td><td>约 20~30mΩ（10V/4.5V），2.5V 下也可用</td><td>0.65~1.45V</td><td>±12V</td><td>SOT-23</td><td>3.3V MCU 直驱 LED/小电机</td><td>¥0.03~0.1</td></tr>
+  <tr><td>AO3401A</td><td>P 逻辑电平</td><td>−30V</td><td>−4A</td><td>约 45~60mΩ（−10V/−4.5V）</td><td>约 −0.5~−1.3V</td><td>±12V</td><td>SOT-23</td><td>电源开关、防反接</td><td>¥0.03~0.1</td></tr>
+  <tr><td>IRLZ44N</td><td>N 逻辑电平</td><td>55V</td><td>47A</td><td>22mΩ@10V，25mΩ@5V</td><td>1~2V</td><td>±16V</td><td>TO-220</td><td>5V MCU 直驱大负载</td><td>¥2~5</td></tr>
+  <tr><td>IRFZ44N</td><td>N</td><td>55V</td><td>49A</td><td>17.5mΩ@10V</td><td>2~4V</td><td>±20V</td><td>TO-220</td><td>电机、电源（需 10V 驱动）</td><td>¥1~3</td></tr>
+  <tr><td>IRF3205</td><td>N</td><td>55V</td><td>110A（封装限 75A）</td><td>8mΩ@10V</td><td>2~4V</td><td>±20V</td><td>TO-220</td><td>逆变器、大电流开关（市面假货多）</td><td>¥1.5~4</td></tr>
+  <tr><td>IRF540N</td><td>N</td><td>100V</td><td>33A</td><td>44mΩ@10V</td><td>2~4V</td><td>±20V</td><td>TO-220</td><td>通用功率开关</td><td>¥1.5~3</td></tr>
+  <tr><td>NCEP039N10D（原文例）</td><td>N</td><td>100V</td><td>135A</td><td>3.5（典）/3.9（最大）mΩ@10V</td><td>2~4V</td><td>±20V</td><td>以手册为准</td><td>电动车控制器、BMS</td><td>约 ¥3~6</td></tr>
+  <tr><td>IRF9540N</td><td>P</td><td>−100V</td><td>−23A</td><td>117mΩ@−10V</td><td>−2~−4V</td><td>±20V</td><td>TO-220</td><td>高边开关</td><td>¥2~4</td></tr>
+  <tr><td>IRF4905</td><td>P</td><td>−55V</td><td>−74A</td><td>20mΩ@−10V</td><td>−2~−4V</td><td>±20V</td><td>TO-220</td><td>大电流高边开关、防反接</td><td>¥2~5</td></tr>
+  <tr><td>IRF740</td><td>N</td><td>400V</td><td>10A</td><td>0.55Ω@10V</td><td>2~4V</td><td>±20V</td><td>TO-220</td><td>离线开关电源、PFC</td><td>¥1.5~3</td></tr>
+  <tr><td>IRFP460</td><td>N</td><td>500V</td><td>20A</td><td>0.27Ω@10V</td><td>2~4V</td><td>±20V</td><td>TO-247</td><td>逆变、感应加热</td><td>¥4~10</td></tr>
+  <tr><td>C3M0065090D</td><td>N（SiC）</td><td>900V</td><td>36A</td><td>65mΩ（典）@15V</td><td>约 1.8~3.5V</td><td>−8/+19V</td><td>TO-247-3</td><td>高压高频电源、车载充电</td><td>约 ¥30~60</td></tr>
+</table>
+<div class="tip"><b>快速选型思路：</b>
+<ol style="margin:4px 0">
+  <li>定类型：低边开关选 NMOS；高边小电流可选 PMOS，大电流用 NMOS+自举驱动。</li>
+  <li>定耐压：V<sub>DS</sub> ≥ 1.5~2 × 最高工作电压（含尖峰）。</li>
+  <li>看驱动电压：手册 R<sub>DS(on)</sub> 必须在你的实际 V<sub>GS</sub> 下给出数值。</li>
+  <li>算损耗与温升：P = I²·R<sub>DS(on),hot</sub> + P<sub>sw</sub>；T<sub>j</sub> = T<sub>a</sub> + P·R<sub>θJA</sub> &lt; 125℃（留余量）。</li>
+  <li>高频时比较 Q<sub>g</sub>×R<sub>DS(on)</sub>（品质因数 FOM），越小越好。</li>
+  <li>买原装渠道。IRF3205、IRFZ44N、IRF540N 这类老型号假货/打磨翻新很多，可用 10.3 节的方法实测 R<sub>DS(on)</sub> 甄别。</li>
+</ol></div>
+
+<!-- ============================ 12 ============================ -->
+<h2 id="s12">12. 易错点与设计注意事项</h2>
+<table>
+  <tr><th style="width:24%">问题</th><th>说明与做法</th></tr>
+  <tr><td>把 V<sub>GS(th)</sub> 当导通电压</td><td>V<sub>th</sub> 只是“开始有 250μA”。完全导通要看 R<sub>DS(on)</sub> 的测试条件，普通管取 10~12V，逻辑电平管取 4.5V 或 2.5V。</td></tr>
+  <tr><td>栅极悬空</td><td>G-S 加 10k~100k 下拉。调试时不要用手去摸悬空的栅极。</td></tr>
+  <tr><td>栅极过压</td><td>V<sub>GS</sub> 不超过 ±20V（部分管子 ±12V）。驱动电压高或有振铃时在 G-S 间并联 12~15V 稳压管/TVS。</td></tr>
+  <tr><td>感性负载无续流</td><td>电机、继电器、电磁阀、变压器必须有续流二极管、RC 吸收或 TVS，否则关断尖峰击穿 D-S。</td></tr>
+  <tr><td>忽略体二极管</td><td>MOS 只能单向阻断。电池反接时体二极管会直接导通；做防反接要利用这一点（PMOS 放正极、NMOS 放负极，让体二极管先导通再由沟道接管）。做双向开关需两管背靠背串联。</td></tr>
+  <tr><td>驱动太弱</td><td>栅极是电容。I<sub>g</sub> ≈ Q<sub>g</sub>/t<sub>sw</sub>，高频必须用驱动芯片；PCB 上驱动回路要短，减小寄生电感。</td></tr>
+  <tr><td>半桥直通</td><td>同一桥臂上下管同时导通会瞬间短路电源。驱动要加死区时间，且要防止米勒效应把关断管“带开”（可加负压关断或米勒钳位）。</td></tr>
+  <tr><td>只看 25℃ 额定值</td><td>按实际散热核算结温：T<sub>j</sub> = T<sub>a</sub> + P × R<sub>θJA</sub>。SOT-23 的 R<sub>θJA</sub> 常在 100~250℃/W，1W 就能把它烧到上百度。</td></tr>
+  <tr><td>长时间工作在饱和区（线性调整）</td><td>电子负载、缓启动、线性稳压等用法要查 SOA 曲线的 DC 线。现代沟槽型 MOS 在线性区可能出现局部热失控，SOA 比想象的小。</td></tr>
+  <tr><td>并联使用</td><td>R<sub>DS(on)</sub> 正温度系数有助于稳态均流，但每只管子要有独立栅极电阻（防寄生振荡），布局对称。</td></tr>
+  <tr><td>静电损伤</td><td>存放用防静电袋，焊接用接地烙铁。</td></tr>
+  <tr><td>高边 NMOS 直接用 MCU 驱动</td><td>做不到。NMOS 当高边时 S 端电压随负载升高，栅极需要高于电源电压，必须用自举/电荷泵/隔离驱动。</td></tr>
+</table>
+
+<!-- ============================ 13 ============================ -->
+<h2 id="s13">13. 画这类图用什么工具</h2>
+<table>
+  <tr><th>图的类型</th><th>推荐工具</th><th>理由</th></tr>
+  <tr><td>器件结构截面、原理示意图</td><td><b>draw.io（diagrams.net）</b>、Inkscape、直接手写 SVG（本笔记用的就是 SVG）</td><td>矢量图，任意缩放不糊；draw.io 免费、自带电子元件库，能导出 SVG/PNG/PDF。</td></tr>
+  <tr><td>电路原理图</td><td><b>立创 EDA</b>（免费、中文、器件库全）、KiCad、Altium Designer</td><td>符号标准、连线不会出错，可直接延伸到 PCB。</td></tr>
+  <tr><td>特性曲线、开关波形（要求数值准确）</td><td><b>LTspice</b>（免费）、Python + matplotlib</td><td>LTspice 可直接导入厂家 MOS 模型仿真出真实 I-V 曲线、米勒平台和开关损耗；matplotlib 适合按公式画教学曲线。</td></tr>
+  <tr><td>论文/讲义级排版</td><td>LaTeX + CircuiTikZ / TikZ / pgfplots</td><td>公式与图风格统一、精度最高，学习成本较高。</td></tr>
+  <tr><td>快速流程图、思维导图</td><td>Mermaid、XMind</td><td>文本生成，修改方便。</td></tr>
+</table>
+<p class="src">建议：概念图用 draw.io，电路用立创 EDA，曲线和波形用 LTspice 仿真截图。这样画出来的东西既直观又经得起推敲。</p>
+
+<p class="src" style="margin-top:40px;border-top:1px solid #d0d7de;padding-top:10px">本笔记中的数值例子是为说明原理而设定，实际设计请以器件数据手册和实测为准。</p>
+</main>
+</body>
+</html>

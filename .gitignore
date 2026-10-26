@@ -1,0 +1,30 @@
+# 系统文件
+Thumbs.db
+desktop.ini
+.DS_Store
+
+# 编辑器
+.vscode/
+.idea/
+*.swp
+
+# 临时文件
+_*.png
+_*.py
+*.tmp
+
+# STM32 / Keil / CubeIDE 编译产物
+**/Debug/
+**/Release/
+**/build/
+*.o
+*.d
+*.axf
+*.elf
+*.map
+*.lst
+*.crf
+*.dep
+*.uvguix.*
+*.uvoptx
+.settings/

@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>2×3 米电子工作间规划</title>
+<style>
+  body { font-family: "Microsoft YaHei", "PingFang SC", sans-serif; max-width: 1100px; margin: 0 auto; padding: 20px 28px 80px; color: #222; line-height: 1.75; background: #fafafa; }
+  h1 { border-bottom: 3px solid #16a085; padding-bottom: 8px; }
+  h2 { margin-top: 48px; padding: 6px 12px; background: #0e6655; color: #fff; border-radius: 4px; }
+  h3 { margin-top: 28px; color: #c0392b; border-left: 4px solid #c0392b; padding-left: 8px; }
+  table { border-collapse: collapse; width: 100%; margin: 10px 0; background: #fff; font-size: 14px; }
+  th, td { border: 1px solid #ccc; padding: 5px 8px; text-align: left; vertical-align: top; }
+  th { background: #ecf0f1; }
+  tr.must td:first-child { border-left: 4px solid #e74c3c; }
+  figure { margin: 16px 0; background: #fff; border: 1px solid #ddd; border-radius: 6px; padding: 10px; }
+  figcaption { text-align: center; color: #666; font-size: 13px; margin-top: 6px; }
+  svg { width: 100%; height: auto; display: block; }
+  svg text { font-family: "Microsoft YaHei", sans-serif; }
+  .key { background: #fff8e1; border-left: 5px solid #f39c12; padding: 8px 14px; margin: 12px 0; }
+  .warn { background: #fdecea; border-left: 5px solid #e74c3c; padding: 8px 14px; margin: 12px 0; }
+  .ok { background: #e9f7ef; border-left: 5px solid #27ae60; padding: 8px 14px; margin: 12px 0; }
+  nav { background: #fff; border: 1px solid #ddd; border-radius: 6px; padding: 8px 20px; }
+  .small { font-size: 13px; color: #666; }
+  .tag { display:inline-block; font-size:12px; padding:0 6px; border-radius:3px; color:#fff; }
+  .t1 { background:#27ae60; } .t2 { background:#2980b9; } .t3 { background:#8e44ad; }
+</style>
+</head>
+<body>
+
+<h1>2×3 米电子工作间规划<br><span class="small">维修、做简单电路板、写 STM32、热风枪返修、调电源（含 220V 开关电源）</span></h1>
+
+<nav><b>目录</b>
+<ol>
+  <li><a href="#s1">先说结论</a></li>
+  <li><a href="#s2">平面布局</a></li>
+  <li><a href="#s3">工作台立面：桌子、层架、洞洞板</a></li>
+  <li><a href="#s4">用电、通风、照明、防静电</a></li>
+  <li><a href="#s5">安全：调 220V 电源前必须准备的东西</a></li>
+  <li><a href="#s6">采购清单（分三档）</a></li>
+  <li><a href="#s7">软件与服务</a></li>
+  <li><a href="#s8">预算汇总与购买顺序</a></li>
+  <li><a href="#s9">我的建议和避坑</a></li>
+</ol>
+</nav>
+
+<div class="warn">说明：价格是 2026 年国内电商的大致区间，没有逐一实时核对，促销和渠道差别很大，以下单时为准。品牌型号是常见、口碑较好的选择，不是唯一选择。布局按"门在短边一侧"假设，你的门窗位置不同可以镜像调整。</div>
+
+<!-- ============================================================ -->
+<h2 id="s1">1. 先说结论</h2>
+<ul>
+<li><b>布局：</b>沿长墙 + 一面短墙做 <b>L 形工作台</b>（深 60~70cm），对面墙做浅置物架（深 30~35cm），中间留约 1m 通道。分三个区：编程区、测量区、焊接返修区。焊接区放在排风扇/窗户旁边。</li>
+<li><b>最该花钱的三样：</b>好用的焊台、一台正经示波器、隔离变压器（你在学 220V 开关电源，这个是保命的）。</li>
+<li><b>不建议在小屋里做的：</b>化学腐蚀做 PCB（直接嘉立创打样，便宜又好）、大量喷漆、树脂 3D 打印。</li>
+<li><b>预算：</b>入门约 3500 元能开工；推荐配置约 1.2 万元（其中家具约 2500 元，用现有桌椅能省下来）；进阶配置 1.5 万元以上。分批买，用到再买。</li>
+</ul>
+
+<!-- ============================================================ -->
+<h2 id="s2">2. 平面布局</h2>
+<figure>
+<svg viewBox="0 0 1000 560">
+  <!-- 房间 1m = 200px -->
+  <rect x="60" y="60" width="600" height="400" fill="#fff" stroke="#333" stroke-width="6"/>
+  <!-- 门 -->
+  <line x1="60" y1="300" x2="60" y2="440" stroke="#fff" stroke-width="8"/>
+  <path d="M60,440 A140,140 0 0,1 200,300" fill="none" stroke="#999" stroke-dasharray="4 3"/>
+  <line x1="60" y1="440" x2="60" y2="300" stroke="#999" stroke-width="2"/>
+  <text x="70" y="430" font-size="12" fill="#555">门（建议外开或推拉）</text>
+  <!-- 窗/排风 -->
+  <rect x="654" y="200" width="12" height="100" fill="#aed6f1" stroke="#2980b9"/>
+  <text x="672" y="236" font-size="12" fill="#2980b9">窗 /</text><text x="672" y="252" font-size="12" fill="#2980b9">排风扇</text><text x="672" y="268" font-size="10" fill="#2980b9">烟往外抽</text>
+  <!-- L 形台面 -->
+  <rect x="60" y="60" width="600" height="130" fill="#d5f5e3" stroke="#27ae60" stroke-width="2"/>
+  <rect x="530" y="190" width="130" height="180" fill="#fadbd8" stroke="#c0392b" stroke-width="2"/>
+  <rect x="530" y="60" width="130" height="130" fill="#fadbd8" stroke="#c0392b" stroke-width="2"/>
+  <line x1="300" y1="60" x2="300" y2="190" stroke="#27ae60" stroke-dasharray="5 4"/>
+  <rect x="60" y="60" width="240" height="130" fill="#d6eaf8" stroke="#2980b9" stroke-width="2"/>
+  <g font-size="14" font-weight="bold" text-anchor="middle">
+    <text x="180" y="105" fill="#21618c">① 编程 / 电脑区</text>
+    <text x="415" y="105" fill="#1e8449">② 测量 / 电源区</text>
+    <text x="595" y="105" fill="#922b21">③ 焊接</text>
+    <text x="595" y="122" fill="#922b21">返修区</text>
+  </g>
+  <g font-size="11" text-anchor="middle" fill="#333">
+    <text x="180" y="128">显示器 + 主机/笔记本</text><text x="180" y="144">ST-Link、开发板、面包板</text><text x="180" y="160">USB 集线器（带开关）</text>
+    <text x="415" y="128">层架上：示波器、电源、万用表</text><text x="415" y="144">台面：被测板、探头、逻辑分析仪</text><text x="415" y="160">台下：隔离变压器 + 串灯泡</text>
+    <text x="595" y="145">焊台 + 显微镜</text>
+    <text x="595" y="230">热风枪</text><text x="595" y="246">加热台</text><text x="595" y="262">吸烟仪</text><text x="595" y="290">耐热硅胶垫</text><text x="595" y="330">⚠ 热源远离</text><text x="595" y="346">塑料和线</text>
+  </g>
+  <!-- 椅子 -->
+  <circle cx="290" cy="240" r="28" fill="#fff" stroke="#555" stroke-width="2"/><text x="290" y="245" font-size="11" text-anchor="middle">椅</text>
+  <circle cx="470" cy="245" r="28" fill="#fff" stroke="#555" stroke-width="2"/><text x="470" y="250" font-size="11" text-anchor="middle">椅</text>
+  <path d="M322,250 Q380,270 438,250" fill="none" stroke="#999" stroke-dasharray="4 3" marker-end="url(#ak)"/>
+  <text x="300" y="295" font-size="11" fill="#777">带轮子的椅子，滑一下换区</text>
+  <!-- 置物架 -->
+  <rect x="240" y="390" width="280" height="70" fill="#fdebd0" stroke="#e67e22" stroke-width="2"/>
+  <text x="380" y="418" font-size="13" text-anchor="middle" font-weight="bold" fill="#a04000">④ 置物架（深 35cm）</text>
+  <text x="380" y="438" font-size="11" text-anchor="middle">元件抽屉、待修件、线材、耗材</text>
+  <rect x="520" y="390" width="140" height="70" fill="#f9e79f" stroke="#b7950b" stroke-width="2"/>
+  <text x="590" y="418" font-size="12" text-anchor="middle" font-weight="bold">⑤ 锂电池</text><text x="590" y="436" font-size="11" text-anchor="middle">防火箱 / 金属柜</text>
+  <!-- 配电 / 灭火 -->
+  <rect x="64" y="200" width="40" height="40" fill="#e74c3c"/><text x="110" y="216" font-size="11" fill="#c0392b">配电盒：漏保 + 总开关</text><text x="110" y="232" font-size="11" fill="#c0392b">（进门伸手就能断电）</text>
+  <rect x="64" y="250" width="22" height="40" fill="#c0392b"/><text x="92" y="275" font-size="11" fill="#c0392b">灭火器</text>
+  <circle cx="360" cy="320" r="10" fill="#fff" stroke="#e74c3c" stroke-width="2"/><text x="376" y="324" font-size="11" fill="#c0392b">烟感（吸顶）</text>
+  <!-- 尺寸 -->
+  <g stroke="#333" stroke-width="1"><line x1="60" y1="30" x2="660" y2="30" marker-start="url(#ak)" marker-end="url(#ak)"/><line x1="30" y1="60" x2="30" y2="460" marker-start="url(#ak)" marker-end="url(#ak)"/>
+  <line x1="200" y1="190" x2="200" y2="390" stroke="#999" stroke-dasharray="3 3" marker-start="url(#ak)" marker-end="url(#ak)"/></g>
+  <text x="360" y="24" font-size="13" text-anchor="middle">3 m</text><text x="12" y="265" font-size="13">2 m</text>
+  <text x="206" y="355" font-size="11" fill="#555">通道约 1 m</text>
+  <text x="304" y="205" font-size="11" fill="#555">台深 0.65 m</text>
+  <!-- 右侧说明 -->
+  <g transform="translate(745,60)" font-size="12">
+    <text x="0" y="0" font-size="14" font-weight="bold">布局要点</text>
+    <text x="0" y="28">· L 形台面总长约 3m + 1.2m，</text>
+    <text x="0" y="46">  人坐在中间转身就能用到</text>
+    <text x="0" y="74">· 焊接区在窗/排风扇旁，烟往外走，</text>
+    <text x="0" y="92">  不经过人脸和电脑</text>
+    <text x="0" y="120">· 电脑区离焊接区最远，</text>
+    <text x="0" y="138">  键盘不被锡渣、助焊剂溅到</text>
+    <text x="0" y="166">· 测量区在中间：左手接电脑</text>
+    <text x="0" y="184">  （烧程序、串口），右手接焊台</text>
+    <text x="0" y="212">· 门口不放东西，紧急时能直接出去；</text>
+    <text x="0" y="230">  总开关、灭火器在门边</text>
+    <text x="0" y="258">· 对面置物架只做 35cm 深，</text>
+    <text x="0" y="276">  保证通道不窄于 80cm</text>
+    <text x="0" y="304">· 锂电池单独放防火箱，</text>
+    <text x="0" y="322">  不和杂物堆在一起</text>
+  </g>
+  <defs><marker id="ak" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#333"/></marker></defs>
+</svg>
+<figcaption>俯视图，1 格比例：1m = 200px。门、窗位置不同时，原则不变：焊接靠排风，电脑远离焊接，门口留空。</figcaption>
+</figure>
+
+<!-- ============================================================ -->
+<h2 id="s3">3. 工作台立面：桌子、层架、洞洞板</h2>
+<figure>
+<svg viewBox="0 0 1000 470">
+  <rect x="60" y="20" width="880" height="400" fill="#f8f9f9" stroke="#bbb"/>
+  <line x1="40" y1="420" x2="960" y2="420" stroke="#333" stroke-width="3"/>
+  <!-- desk 75cm: scale 1cm=2px -> 75cm=150px, floor y=420 -> top y=270 -->
+  <rect x="60" y="262" width="880" height="16" fill="#a04000"/>
+  <g fill="#7f8c8d"><rect x="70" y="278" width="12" height="142"/><rect x="918" y="278" width="12" height="142"/><rect x="480" y="278" width="12" height="142"/></g>
+  <rect x="60" y="250" width="880" height="12" fill="#27ae60" opacity="0.8"/>
+  <text x="500" y="247" font-size="11" text-anchor="middle" fill="#1e8449">防静电台垫（绿色，经 1MΩ 接地）</text>
+  <!-- instrument shelf 35cm above desk -->
+  <rect x="330" y="182" width="300" height="10" fill="#7f8c8d"/>
+  <g fill="#7f8c8d"><rect x="335" y="192" width="6" height="58"/><rect x="619" y="192" width="6" height="58"/></g>
+  <rect x="345" y="125" width="130" height="57" rx="3" fill="#2c3e50"/><text x="410" y="158" font-size="11" fill="#fff" text-anchor="middle">示波器</text>
+  <rect x="485" y="135" width="80" height="47" rx="3" fill="#34495e"/><text x="525" y="163" font-size="11" fill="#fff" text-anchor="middle">直流电源</text>
+  <rect x="575" y="150" width="45" height="32" rx="3" fill="#e67e22"/><text x="597" y="170" font-size="10" fill="#fff" text-anchor="middle">万用表</text>
+  <!-- monitor -->
+  <rect x="110" y="140" width="170" height="100" rx="4" fill="#2c3e50"/><rect x="185" y="240" width="20" height="10" fill="#555"/>
+  <text x="195" y="195" font-size="12" fill="#fff" text-anchor="middle">显示器（挂臂更省台面）</text>
+  <!-- solder -->
+  <rect x="700" y="205" width="70" height="45" rx="3" fill="#c0392b"/><text x="735" y="232" font-size="11" fill="#fff" text-anchor="middle">焊台</text>
+  <rect x="790" y="120" width="12" height="130" fill="#555"/><rect x="770" y="110" width="60" height="30" rx="4" fill="#777"/><text x="845" y="130" font-size="11">显微镜</text>
+  <rect x="850" y="215" width="70" height="35" rx="3" fill="#922b21"/><text x="885" y="237" font-size="11" fill="#fff" text-anchor="middle">热风枪</text>
+  <!-- pegboard -->
+  <rect x="80" y="40" width="840" height="70" fill="#fdebd0" stroke="#e67e22"/>
+  <g fill="#e67e22" opacity="0.5">
+    <circle cx="100" cy="55" r="2"/><circle cx="120" cy="55" r="2"/><circle cx="140" cy="55" r="2"/><circle cx="100" cy="75" r="2"/><circle cx="120" cy="75" r="2"/><circle cx="140" cy="75" r="2"/><circle cx="100" cy="95" r="2"/><circle cx="120" cy="95" r="2"/><circle cx="140" cy="95" r="2"/>
+  </g>
+  <text x="500" y="70" font-size="13" text-anchor="middle" fill="#a04000">洞洞板：钳子、镊子、螺丝刀、线缆、探头 —— 挂墙上，台面保持空</text>
+  <text x="500" y="90" font-size="11" text-anchor="middle" fill="#a04000">下沿装一条 LED 灯带或挂一盏长条灯，台面无阴影</text>
+  <!-- power strip under shelf -->
+  <rect x="340" y="196" width="270" height="12" fill="#fff" stroke="#c0392b"/><text x="475" y="220" font-size="10" text-anchor="middle" fill="#c0392b">层架底部固定排插（带总开关），线不拖在台面上</text>
+  <!-- under desk -->
+  <rect x="520" y="350" width="90" height="65" fill="#7d6608"/><text x="565" y="378" font-size="11" fill="#fff" text-anchor="middle">隔离变压器</text><text x="565" y="394" font-size="10" fill="#fff" text-anchor="middle">500VA</text>
+  <rect x="630" y="370" width="90" height="45" fill="#ddd" stroke="#999"/><text x="675" y="397" font-size="11" text-anchor="middle">抽屉柜</text>
+  <rect x="110" y="320" width="80" height="95" fill="#555"/><text x="150" y="370" font-size="11" fill="#fff" text-anchor="middle">主机</text>
+  <!-- dims -->
+  <g stroke="#333" stroke-width="1"><line x1="975" y1="270" x2="975" y2="420" marker-start="url(#ak2)" marker-end="url(#ak2)"/><line x1="975" y1="182" x2="975" y2="262" marker-start="url(#ak2)" marker-end="url(#ak2)"/></g>
+  <text x="935" y="350" font-size="12">75cm</text><text x="935" y="226" font-size="11">35~40cm</text>
+  <text x="70" y="450" font-size="12" fill="#555">坐姿台面 75cm；层架离台面 35~40cm，深 25~30cm，放仪器后屏幕和眼睛平齐，台面仍可以放被测板。</text>
+  <defs><marker id="ak2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#333"/></marker></defs>
+</svg>
+<figcaption>沿长墙看过去的立面示意（比例 1cm ≈ 2px）。</figcaption>
+</figure>
+<table>
+<tr><th>项目</th><th>建议</th></tr>
+<tr><td>台面</td><td>深 60~70cm、厚 2.5cm 以上的实木多层板或工业工作台，能承重、不晃。焊接区铺一块耐热硅胶垫（热风枪、加热台下面）。</td></tr>
+<tr><td>高度</td><td>坐着干活 75cm；喜欢站着返修可以做 90cm 配高脚椅，但写程序会累，小屋建议统一 75cm。</td></tr>
+<tr><td>仪器层架</td><td>离台面 35~40cm，示波器、电源放上去，屏幕在视线高度，台面全部留给干活。</td></tr>
+<tr><td>洞洞板</td><td>工具上墙，"用完放回原位"最容易坚持。常用的放手边，不常用的进抽屉。</td></tr>
+<tr><td>椅子</td><td>带轮、可升降、有靠背。小屋里一把好椅子比多一件仪器更影响体验。</td></tr>
+</table>
+
+<!-- ============================================================ -->
+<h2 id="s4">4. 用电、通风、照明、防静电</h2>
+<figure>
+<svg viewBox="0 0 1000 300">
+  <g font-size="13" text-anchor="middle">
+    <rect x="20" y="110" width="120" height="70" rx="6" fill="#fadbd8" stroke="#c0392b"/><text x="80" y="138">墙插 / 配电盒</text><text x="80" y="158" font-size="11">30mA 漏保 + 空开</text>
+    <rect x="190" y="30" width="170" height="60" rx="6" fill="#d6eaf8" stroke="#2980b9"/><text x="275" y="55">排插 A：常电</text><text x="275" y="73" font-size="11">电脑、路由器、灯</text>
+    <rect x="190" y="120" width="170" height="60" rx="6" fill="#d5f5e3" stroke="#27ae60"/><text x="275" y="145">排插 B：仪器</text><text x="275" y="163" font-size="11">示波器、电源、焊台</text>
+    <rect x="190" y="210" width="170" height="60" rx="6" fill="#fdebd0" stroke="#e67e22"/><text x="275" y="235">排插 C：大功率</text><text x="275" y="253" font-size="11">热风枪、加热台、排风</text>
+    <rect x="430" y="120" width="160" height="60" rx="6" fill="#f9e79f" stroke="#b7950b"/><text x="510" y="145">隔离变压器</text><text x="510" y="163" font-size="11">只给"被修的东西"供电</text>
+    <rect x="640" y="120" width="140" height="60" rx="6" fill="#fff" stroke="#555"/><text x="710" y="145">串灯泡限流盒</text><text x="710" y="163" font-size="11">60~100W 白炽灯</text>
+    <rect x="830" y="120" width="150" height="60" rx="6" fill="#fadbd8" stroke="#c0392b"/><text x="905" y="145">被修的开关电源</text><text x="905" y="163" font-size="11">（DUT）</text>
+  </g>
+  <g stroke="#333" stroke-width="1.6" fill="none">
+    <path d="M140,145 H165 V60 H188" marker-end="url(#ak3)"/><path d="M165,145 H188" marker-end="url(#ak3)"/><path d="M165,145 V240 H188" marker-end="url(#ak3)"/>
+    <path d="M360,150 H428" marker-end="url(#ak3)"/><path d="M590,150 H638" marker-end="url(#ak3)"/><path d="M780,150 H828" marker-end="url(#ak3)"/>
+  </g>
+  <text x="430" y="215" font-size="12" fill="#c0392b">示波器、电脑不要接在隔离变压器后面，</text>
+  <text x="430" y="233" font-size="12" fill="#c0392b">它们保持正常接地；隔离的是被测物</text>
+  <text x="20" y="290" font-size="12" fill="#555">热风枪 700W + 加热台 300~500W + 其他，合计常在 1.5kW 以内，普通 10A 插座够用；不要多个排插串接。</text>
+  <defs><marker id="ak3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#333"/></marker></defs>
+</svg>
+</figure>
+<table>
+<tr><th width="120">项目</th><th>建议</th></tr>
+<tr><td>漏电保护</td><td>小屋的回路一定要有 30mA 漏电保护（没有就在进线处加一个带漏保的插座或小配电盒）。总开关放门边。</td></tr>
+<tr><td>排插</td><td>选带总开关、带过载保护的正规品牌（如公牛），分组使用。离开时一键断掉仪器和大功率排插，只留常电。</td></tr>
+<tr><td>通风</td><td>2×3 米空间小，焊接烟（助焊剂松香烟）和热风枪的热量会很快积累。<b>窗上或墙上装排风扇</b>（往外抽），焊接区再放一台带活性炭的吸烟仪。夏天这屋会很热，最好有空调或至少电风扇（风别直吹焊点）。</td></tr>
+<tr><td>照明</td><td>吸顶灯 + 台面上方长条灯（4000~5000K，显色指数 Ra≥90），焊接区加放大台灯或显微镜自带环形灯。灯光从多个方向打，减少阴影。</td></tr>
+<tr><td>防静电</td><td>台垫（绿色橡胶，带接地扣，经 1MΩ 电阻接地线 PE）+ 腕带。修手机、主板、MOS 管时戴上。这是便宜又管用的投入。</td></tr>
+<tr><td>地面</td><td>浅色地面掉了贴片元件好找。不要铺长毛地毯（静电 + 防火）。</td></tr>
+<tr><td>网络</td><td>STM32 资料、手册、立创 EDA 都在线，Wi-Fi 信号要好，或者拉网线。</td></tr>
+</table>
+
+<!-- ============================================================ -->
+<h2 id="s5">5. 安全：调 220V 电源前必须准备的东西</h2>
+<div class="warn">你前面在学 LD7575、快充、350W 电源，修和调这些东西时初级有 310V 以上直流，电容断电后还带电。下面这几样在碰 220V 之前就要到位，比任何仪器都重要。</div>
+<table>
+<tr><th width="160">东西</th><th>作用</th><th width="110">参考价</th></tr>
+<tr class="must"><td>隔离变压器 1:1，300~500VA</td><td>被修设备接在它后面。单手碰到被修板上任意一点不会通过大地形成回路触电（但同时碰到两点照样危险）。也让示波器探头的地夹不会把被测板短路接地。</td><td>¥200~500</td></tr>
+<tr class="must"><td>串灯泡限流盒</td><td>白炽灯（60~100W）串在电源前面。被修板有短路时灯泡亮、电流被限住，不会炸管冒火；正常时灯微亮后熄灭。自己用插座 + 灯座 + 开关做一个（短路开关用于灯泡旁路）。</td><td>¥30~50</td></tr>
+<tr class="must"><td>电容放电工具</td><td>几 kΩ / 5~10W 电阻 + 两根绝缘表笔线（或现成的放电笔），修之前给大电容放电，再用万用表确认。</td><td>¥10~30</td></tr>
+<tr class="must"><td>灭火器 + 烟感</td><td>2kg 干粉或二氧化碳灭火器放门边；独立式烟感吸顶。锂电池放防火箱。</td><td>¥100~200</td></tr>
+<tr><td>高压差分探头</td><td>测 MOS 漏极、初级侧波形最安全的办法。普通探头测初级时只能把被测物放在隔离变压器后、只用一个通道、地夹接初级地。</td><td>¥800~2000</td></tr>
+<tr><td>绝缘手套 / 护目镜</td><td>电解电容爆、焊锡溅。护目镜在调试上电时戴。</td><td>¥30~80</td></tr>
+</table>
+<div class="key">
+<b>三条习惯：</b><br>
+① <b>不要拔掉示波器的接地脚来"浮地测量"</b>，那会让示波器外壳带上几百伏，这是最常见的事故原因。要隔离，隔离被测物。<br>
+② 第一次给修过的电源上电：隔离变压器 → 串灯泡 → 被测物，人离开一点，看灯泡状态再决定。<br>
+③ 一只手操作：测高压时另一只手不要扶在台面或机壳上。
+</div>
+<p class="small">隔离变压器的输出侧不再经过漏电保护起作用（漏电流不经过大地），所以它只能防"单点碰触"，不能防"两手各碰一端"。不要把隔离变压器当成万能保险。</p>
+
+<!-- ============================================================ -->
+<h2 id="s6">6. 采购清单（分三档）</h2>
+<p><span class="tag t1">入门</span> 能开工、够用　<span class="tag t2">推荐</span> 性价比最高、用好几年　<span class="tag t3">进阶</span> 明确需要再买</p>
+
+<h3>6.1 焊接与返修</h3>
+<table>
+<tr><th width="120">物品</th><th>入门</th><th>推荐</th><th>进阶</th><th width="240">说明</th></tr>
+<tr class="must"><td>电烙铁 / 焊台</td><td>T12 焊台（国产）<br>¥150~300</td><td>C210/C245 刀头焊台（国产 JBC 兼容款）<br>¥400~900</td><td>JBC、白光 FX-951 等<br>¥2000+</td><td>T12 升温快、头多、便宜，入门足够。C245/C210 是发热芯和头一体，回温更快，焊大地线、细引脚都轻松，是现在发烧友主流。<b>不要买无温控的老式外热烙铁</b>。</td></tr>
+<tr class="must"><td>热风枪</td><td>858D 类<br>¥150~250</td><td>快克 861DW 等无刷款<br>¥600~1000</td><td>大功率风枪 + 底部预热<br>¥1500+</td><td>拆贴片芯片、QFN、热缩管。无刷风机寿命长、噪音小、风量稳。</td></tr>
+<tr><td>加热台</td><td>小型恒温加热台<br>¥100~300</td><td>带温度曲线的回流加热台<br>¥300~600</td><td>—</td><td>自己贴片板子：钢网刷锡膏 → 放元件 → 加热台回流。修手机主板、拆 LED 灯板也离不开。</td></tr>
+<tr><td>放大</td><td>放大台灯<br>¥80~200</td><td>体视显微镜 7~45 倍<br>¥800~2000</td><td>带相机的体视显微镜<br>¥2500+</td><td>0603、0402、QFN 靠肉眼很累。<b>体视显微镜</b>（两个目镜，有立体感，下面能伸烙铁）比便宜的电子显微镜好用得多。</td></tr>
+<tr><td>吸烟</td><td>桌面吸烟仪（活性炭）<br>¥80~200</td><td>带软管的吸烟仪 + 墙上排风扇<br>¥300~800</td><td>—</td><td>松香烟刺激呼吸道，小屋必须有。</td></tr>
+<tr><td>耗材</td><td colspan="3">焊锡丝 0.5mm、0.8mm（Sn63/Pb37 有铅好焊，注意洗手；无铅环保但难焊一点）、助焊膏（选正规品牌）、吸锡带 1.5/2.5mm、吸锡器、锡膏（中温）、洗板水/异丙醇 + 刷子、烙铁头清洁铜丝球、耐热硅胶垫、高温胶带（Kapton）<br>合计 ¥150~300</td><td>助焊剂比焊锡更重要，好的助焊膏能让新手焊得像老手。</td></tr>
+<tr><td>镊子</td><td colspan="3">防静电镊子一套（直头 + 弯头），推荐买好一点的不锈钢精密镊子 ¥30~150</td><td>贴片焊接最常用的工具，便宜镊子尖头对不齐会很难受。</td></tr>
+</table>
+
+<h3>6.2 测量仪器</h3>
+<table>
+<tr><th width="120">物品</th><th>入门</th><th>推荐</th><th>进阶</th><th width="240">说明</th></tr>
+<tr class="must"><td>万用表</td><td>优利德 UT89X / UT33 等<br>¥80~200</td><td>优利德 UT61E+ / Fluke 15B+<br>¥300~800</td><td>Fluke 87V 等<br>¥2500+</td><td>真有效值、二极管档、电容档、通断蜂鸣快。测 220V 选标 CAT III 600V 以上的。建议一台好的 + 一台便宜的同时用（测电压电流同时看）。</td></tr>
+<tr class="must"><td>示波器</td><td>—（不建议买手持玩具级）</td><td>鼎阳 SDS804X HD 或普源 DHO804（4 通道、70~100MHz、12bit）<br>¥2000~3000</td><td>200MHz 以上 / 带 MSO 逻辑通道<br>¥4000+</td><td>学开关电源、调 STM32 波形的核心仪器。12bit 看纹波、小信号很清楚。4 通道可以同时看栅极、漏极、电流、输出。<b>这是最值得花钱的一件。</b></td></tr>
+<tr><td>逻辑分析仪</td><td>24MHz 8 通道（Saleae 兼容，用 PulseView）<br>¥30~60</td><td>DSLogic Plus 等<br>¥400~700</td><td>—</td><td>调 STM32 的 I²C、SPI、UART、CAN 时非常好用，自动解码协议。</td></tr>
+<tr><td>元件测试</td><td>LCR-T4 类晶体管测试仪<br>¥30~80</td><td>手持 LCR 电桥（如优利德 UT612）<br>¥300~600</td><td>台式 LCR<br>¥2000+</td><td>测拆下来的三极管、MOS、电容容量和 ESR、电感量。修电源很有用。</td></tr>
+<tr><td>USB 测试</td><td colspan="2">USB 电流电压表 / PD 诱骗测试器（如 FNIRSI FNB58、POWER-Z 系列）¥100~400</td><td>—</td><td>正好配合你学的快充协议：能看 PD 握手、PDO 列表、诱骗出 9V/20V。</td></tr>
+<tr><td>其他</td><td colspan="3">红外测温枪 ¥50~150（看哪个元件发烫）；数显卡尺 ¥50~150；钳形表（测交流电流，可选）¥150~400</td><td></td></tr>
+</table>
+
+<h3>6.3 电源</h3>
+<table>
+<tr><th width="120">物品</th><th>入门</th><th>推荐</th><th>进阶</th><th width="240">说明</th></tr>
+<tr class="must"><td>可调直流电源</td><td>30V/5A 数显开关电源<br>¥200~400</td><td>30V/5A 线性电源，或睿登 RD6006/RD6012 数控电源<br>¥400~900</td><td>双路 / 可编程电源（鼎阳、普源）<br>¥2000+</td><td>必须能<b>限流</b>：给新焊的板子上电先把电流限到几十 mA，短路也不会烧。线性电源纹波小、调模拟电路好；数控电源能接电脑、做电池充放电。</td></tr>
+<tr class="must"><td>隔离变压器</td><td colspan="3">1:1，300~500VA ¥200~500（见第 5 节）</td><td>修 220V 设备必备。</td></tr>
+<tr><td>串灯泡盒</td><td colspan="3">自制，¥30~50</td><td>同上。</td></tr>
+<tr><td>其他</td><td colspan="3">USB PD 充电器（65W，给笔记本和板子供电）、几块常用电源模块（降压 DC-DC、LDO 3.3V/5V 模块）</td><td>做小项目时直接用模块，省事。</td></tr>
+<tr><td>自耦调压器</td><td colspan="3">可选 ¥200~400</td><td>慢慢升高输入电压调电源用。<b>它不隔离</b>，必须接在隔离变压器后面或另配隔离。</td></tr>
+</table>
+
+<h3>6.4 STM32 与单片机</h3>
+<table>
+<tr><th width="120">物品</th><th>推荐</th><th width="320">说明</th></tr>
+<tr class="must"><td>开发板</td><td>ST 官方 NUCLEO（如 NUCLEO-F411RE、NUCLEO-G431RB）¥100~200；或正点原子 / 野火的开发板 ¥200~500</td><td>NUCLEO 自带 ST-LINK，插上就能下载调试，芯片保证是正品。正点原子、野火有完整中文视频和例程，适合从零开始。</td></tr>
+<tr><td>最小系统板</td><td>STM32F103C8T6 / F401 / F411 "蓝板/黑板" ¥15~40 若干</td><td>便宜，适合做小项目。注意便宜板子上芯片可能是兼容片或翻新片，调试出怪问题时先怀疑这个。</td></tr>
+<tr class="must"><td>下载调试器</td><td>ST-LINK V2 兼容款 ¥20~40；DAPLink ¥30~80；ST-LINK V3MINIE ¥100~150</td><td>SWD 接口下载和单步调试。V3 更快，带虚拟串口。</td></tr>
+<tr><td>串口</td><td>USB-TTL（CH340 / CP2102）×2 ¥10~20</td><td>打印调试信息，必备。</td></tr>
+<tr><td>原型</td><td>面包板、杜邦线（公公/公母/母母）、排针排母、万能洞洞板、常用传感器模块（温湿度、OLED 屏、按键、继电器、电机驱动）</td><td>先在面包板上验证，再画板子。</td></tr>
+<tr><td>元件库存</td><td>贴片电阻、电容样品本（0603/0805），常用二极管、三极管、MOS、LDO、晶振</td><td>嘉立创/立创商城买样品本，按封装分格收纳。</td></tr>
+</table>
+
+<h3>6.5 手工具</h3>
+<table>
+<tr><th width="160">物品</th><th>建议</th><th width="110">参考价</th></tr>
+<tr><td>精密螺丝刀套装</td><td>带各种异形头（十字、一字、梅花 T5~T10、三角、Y 型、五角），拆手机、电器都用得上</td><td>¥50~200</td></tr>
+<tr><td>斜口钳</td><td>小号电子用平口斜口钳（剪引脚平整），好钳子很耐用</td><td>¥30~150</td></tr>
+<tr><td>尖嘴钳、剥线钳、压线钳</td><td>压线钳选能压杜邦、XH/PH 端子的；剥线钳选自动剥线款</td><td>¥100~250</td></tr>
+<tr><td>撬棒、撬片、吸盘</td><td>拆外壳、拆屏幕</td><td>¥20~50</td></tr>
+<tr><td>热缩管、扎带、高温胶带、双面胶、热熔胶枪</td><td>整理线材、绝缘</td><td>¥50~100</td></tr>
+<tr><td>电钻（可选）</td><td>小型充电电钻或手持电磨，开孔、打磨外壳</td><td>¥150~400</td></tr>
+<tr><td>标签机（可选）</td><td>抽屉、线缆贴标签，小屋东西多时很有用</td><td>¥100~200</td></tr>
+</table>
+
+<h3>6.6 家具与收纳</h3>
+<table>
+<tr><th width="160">物品</th><th>建议</th><th width="110">参考价</th></tr>
+<tr><td>L 形工作台</td><td>3m + 1.2m，深 65cm。可以买防静电工作台，也可以用铝型材 + 厚台面自己做（更结实、能装层架）</td><td>¥800~2500</td></tr>
+<tr><td>仪器层架</td><td>台面上方 35~40cm 的金属层板</td><td>¥100~300</td></tr>
+<tr><td>洞洞板</td><td>金属洞洞板 + 挂钩</td><td>¥100~250</td></tr>
+<tr><td>置物架</td><td>深 35cm 的金属架，放元件抽屉盒</td><td>¥200~400</td></tr>
+<tr><td>元件抽屉 / 分格盒</td><td>透明分格盒 + 抽屉式零件柜，贴标签</td><td>¥100~300</td></tr>
+<tr><td>防静电台垫 + 腕带</td><td>铺满焊接和测量区</td><td>¥80~200</td></tr>
+<tr><td>升降椅</td><td>带轮、有靠背</td><td>¥300~800</td></tr>
+<tr><td>显示器挂臂</td><td>把显示器抬起来，省台面</td><td>¥100~200</td></tr>
+<tr><td>锂电池防火箱</td><td>放 18650、航模电池</td><td>¥50~150</td></tr>
+</table>
+
+<!-- ============================================================ -->
+<h2 id="s7">7. 软件与服务（基本都免费）</h2>
+<table>
+<tr><th width="160">用途</th><th>推荐</th><th>说明</th></tr>
+<tr><td>STM32 开发</td><td>STM32CubeMX + STM32CubeIDE（免费）；或 Keil MDK（教程最多）；或 VS Code + CMake + STM32 插件</td><td>入门跟着教程用 Keil 或 CubeIDE；熟练后 VS Code 更顺手。CubeMX 图形化配置时钟和外设，省很多事。</td></tr>
+<tr><td>画原理图和 PCB</td><td>立创 EDA（免费、中文、器件库和嘉立创打样无缝衔接）；KiCad（开源）</td><td>入门首选立创 EDA。</td></tr>
+<tr><td>做板子</td><td>嘉立创 PCB 打样（经常有免费券，两层板几块钱）、SMT 贴片、钢网</td><td>比在家腐蚀方便太多，质量也好。小屋里不建议用三氯化铁/过硫酸钠腐蚀。</td></tr>
+<tr><td>仿真</td><td>LTspice（免费）</td><td>仿真开关电源、滤波器，配合你学的电源知识。</td></tr>
+<tr><td>买元件</td><td>立创商城（正品、手册齐、可和 PCB 一起发货）</td><td>关键芯片尽量在正规渠道买。</td></tr>
+<tr><td>逻辑分析</td><td>PulseView / sigrok、DSView</td><td>配合逻辑分析仪。</td></tr>
+<tr><td>串口调试</td><td>VOFA+、SSCOM、MobaXterm</td><td>VOFA+ 可以把串口数据画成波形，调 PID、ADC 很方便。</td></tr>
+<tr><td>笔记</td><td>本目录这样的 HTML 笔记、Obsidian、拍照存档</td><td>修东西拆之前先拍照，记录测量点电压，回装和下次维修都用得上。</td></tr>
+</table>
+
+<!-- ============================================================ -->
+<h2 id="s8">8. 预算汇总与购买顺序</h2>
+<table>
+<tr><th>类别</th><th>入门</th><th>推荐</th></tr>
+<tr><td>焊接返修（焊台、风枪、加热台、放大、吸烟、耗材、镊子）</td><td>约 ¥700</td><td>约 ¥3000</td></tr>
+<tr><td>测量（万用表、示波器、逻辑分析仪、元件测试、USB 测试、测温）</td><td>约 ¥400（不含示波器）</td><td>约 ¥3500</td></tr>
+<tr><td>电源与安全（可调电源、隔离变压器、灯泡盒、放电、灭火器、烟感）</td><td>约 ¥700</td><td>约 ¥1500</td></tr>
+<tr><td>STM32（开发板、调试器、串口、面包板、模块、元件本）</td><td>约 ¥300</td><td>约 ¥700</td></tr>
+<tr><td>手工具</td><td>约 ¥300</td><td>约 ¥600</td></tr>
+<tr><td>家具收纳（台面、层架、洞洞板、置物架、台垫、椅子、排风扇、灯）</td><td>约 ¥1000</td><td>约 ¥2500</td></tr>
+<tr><th>合计</th><th>约 ¥3400</th><th>约 ¥11800</th></tr>
+</table>
+<p class="small">家具部分如果用现有桌椅，可以省掉一大块。示波器是推荐档里最大的一项，可以第二阶段再买。</p>
+
+<figure>
+<svg viewBox="0 0 1000 230">
+  <g font-size="13">
+    <rect x="10" y="30" width="230" height="170" rx="8" fill="#d5f5e3" stroke="#27ae60"/>
+    <text x="20" y="54" font-weight="bold" fill="#1e8449">第 1 步：能安全开工</text>
+    <text x="20" y="80" font-size="12">· 台面、灯、排风、台垫</text><text x="20" y="100" font-size="12">· 漏保、排插、灭火器、烟感</text><text x="20" y="120" font-size="12">· 焊台 + 耗材 + 镊子</text><text x="20" y="140" font-size="12">· 万用表、可调电源</text><text x="20" y="160" font-size="12">· NUCLEO + ST-LINK + 串口</text><text x="20" y="180" font-size="12">· 手工具</text>
+    <rect x="260" y="30" width="230" height="170" rx="8" fill="#d6eaf8" stroke="#2980b9"/>
+    <text x="270" y="54" font-weight="bold" fill="#21618c">第 2 步：能修、能贴片</text>
+    <text x="270" y="80" font-size="12">· 热风枪、加热台</text><text x="270" y="100" font-size="12">· 放大台灯 / 显微镜</text><text x="270" y="120" font-size="12">· 逻辑分析仪、LCR 测试</text><text x="270" y="140" font-size="12">· 嘉立创打样第一块板</text><text x="270" y="160" font-size="12">· 元件样品本、收纳</text>
+    <rect x="510" y="30" width="230" height="170" rx="8" fill="#fdebd0" stroke="#e67e22"/>
+    <text x="520" y="54" font-weight="bold" fill="#a04000">第 3 步：碰 220V 之前</text>
+    <text x="520" y="80" font-size="12">· 隔离变压器</text><text x="520" y="100" font-size="12">· 串灯泡盒、放电工具</text><text x="520" y="120" font-size="12">· 示波器</text><text x="520" y="140" font-size="12">· 护目镜</text><text x="520" y="160" font-size="12">· （有预算）高压差分探头</text>
+    <rect x="760" y="30" width="230" height="170" rx="8" fill="#ebdef0" stroke="#8e44ad"/>
+    <text x="770" y="54" font-weight="bold" fill="#6c3483">第 4 步：按需升级</text>
+    <text x="770" y="80" font-size="12">· 体视显微镜</text><text x="770" y="100" font-size="12">· C245 焊台 / 好风枪</text><text x="770" y="120" font-size="12">· 电子负载、双路电源</text><text x="770" y="140" font-size="12">· 3D 打印机（做外壳，</text><text x="770" y="158" font-size="12">  注意通风和放置位置）</text>
+  </g>
+  <g stroke="#333" stroke-width="2"><line x1="240" y1="115" x2="258" y2="115" marker-end="url(#ak4)"/><line x1="490" y1="115" x2="508" y2="115" marker-end="url(#ak4)"/><line x1="740" y1="115" x2="758" y2="115" marker-end="url(#ak4)"/></g>
+  <defs><marker id="ak4" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#333"/></marker></defs>
+</svg>
+<figcaption>建议的购买顺序：先安全和基本工具，再按实际做的项目添置。</figcaption>
+</figure>
+
+<!-- ============================================================ -->
+<h2 id="s9">9. 我的建议和避坑</h2>
+<div class="ok">
+<b>值得花钱：</b><br>
+· <b>焊台和助焊剂</b>：天天用，好工具直接决定焊接体验。<br>
+· <b>示波器</b>：一步到位买 4 通道 12bit 的入门台式机，用很多年。手持玩具示波器带宽、采样、触发都不够，学电源会误导你。<br>
+· <b>隔离变压器</b>：学 220V 电源绕不开，几百块买个安心。<br>
+· <b>椅子、灯、排风</b>：小屋里长时间待着，舒适度和健康最重要。
+</div>
+<div class="warn">
+<b>可以省或要避开：</b><br>
+· 不要一次性买"万能工具套装"，里面一半用不上，真正常用的又不够好。<br>
+· 不要买太便宜的焊台和万用表：温度不准、安全等级虚标，测 220V 有风险。<br>
+· 便宜 STM32 小板芯片可能不是正品，学习阶段先用 NUCLEO 或正点原子这类有保障的板子，排除"板子问题"。<br>
+· 市场上 IRF3205、FGA25N120 这类热门功率管假货多，修电源用的关键管子去正规渠道买。<br>
+· 在家腐蚀 PCB、树脂 3D 打印、喷漆，在 6 平米屋里气味和化学品都难处理，直接外包或不做。<br>
+· 锂电池（尤其是拆下来的旧电池）不要堆在桌上，充电时人不离开。
+</div>
+<div class="key">
+<b>使用习惯：</b><br>
+· 工具上墙、元件分格贴标签，用完归位。6 平米乱一次就很难找东西。<br>
+· 新板子上电：可调电源先限流（几十 mA），看电流正常再放开。<br>
+· 修 220V：断电 → 等 → 放电 → 万用表确认 → 再动手。上电走隔离变压器 + 串灯泡。<br>
+· 离开小屋断掉仪器和大功率排插，烙铁、风枪、加热台不在人走后通电。<br>
+· 每个项目建一个文件夹：原理图、程序、照片、测量记录、笔记。
+</div>
+
+<p class="small" style="margin-top:40px;border-top:1px solid #ddd;padding-top:10px">配套笔记：<a href="../02-电源设计/LD7575学习笔记.html">LD7575</a>、<a href="../02-电源设计/GaN快充学习笔记.html">氮化镓快充</a>、<a href="../02-电源设计/350W工业电源学习笔记.html">350W 工业电源</a>、<a href="../01-元器件/MOS管学习笔记.html">MOS 管</a>、<a href="../01-元器件/三极管学习笔记.html">三极管</a>、<a href="../01-元器件/IGBT学习笔记.html">IGBT</a>。</p>
+
+</body>
+</html>

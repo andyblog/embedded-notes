@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>DC-DC 基本拓扑学习笔记：Buck / Boost / Buck-Boost / Flyback</title>
+<style>
+  body { font-family: "Microsoft YaHei", "PingFang SC", sans-serif; max-width: 1100px; margin: 0 auto; padding: 20px 28px 80px; color: #222; line-height: 1.75; background: #fafafa; }
+  h1 { border-bottom: 3px solid #d35400; padding-bottom: 8px; }
+  h2 { margin-top: 48px; padding: 6px 12px; background: #6e2c00; color: #fff; border-radius: 4px; }
+  h3 { margin-top: 28px; color: #c0392b; border-left: 4px solid #c0392b; padding-left: 8px; }
+  table { border-collapse: collapse; width: 100%; margin: 10px 0; background: #fff; font-size: 14px; }
+  th, td { border: 1px solid #ccc; padding: 5px 8px; text-align: left; vertical-align: top; }
+  th { background: #ecf0f1; }
+  pre { font-family: Consolas, monospace; background: #f0f0f0; border-radius: 3px; padding: 10px 14px; overflow-x: auto; }
+  figure { margin: 16px 0; background: #fff; border: 1px solid #ddd; border-radius: 6px; padding: 10px; }
+  figcaption { text-align: center; color: #666; font-size: 13px; margin-top: 6px; }
+  svg { width: 100%; height: auto; display: block; }
+  svg text { font-family: "Microsoft YaHei", sans-serif; }
+  .key { background: #fff8e1; border-left: 5px solid #f39c12; padding: 8px 14px; margin: 12px 0; }
+  .warn { background: #fdecea; border-left: 5px solid #e74c3c; padding: 8px 14px; margin: 12px 0; }
+  .qa { background: #fff; border: 1px solid #ddd; border-radius: 6px; padding: 8px 14px; margin: 10px 0; }
+  .qa b.q { color: #2980b9; }
+  nav { background: #fff; border: 1px solid #ddd; border-radius: 6px; padding: 8px 20px; }
+  .small { font-size: 13px; color: #666; }
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute">
+  <defs>
+    <marker id="ak" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#333"/></marker>
+    <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#e74c3c"/></marker>
+    <marker id="ab" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#2980b9"/></marker>
+  </defs>
+</svg>
+
+<h1>DC-DC 基本拓扑学习笔记<br><span class="small">Buck 降压、Boost 升压、Buck-Boost 升降压、Flyback 反激：原理、公式、计算例、实际芯片和产品</span></h1>
+
+<p class="small">配套阅读：<a href="LD7575学习笔记.html">LD7575 反激电源</a>（反激的完整电路分析）、<a href="350W工业电源学习笔记.html">350W 工业电源</a>（半桥，本质是带变压器的 Buck）、<a href="../01-元器件/MOS管学习笔记.html">MOS 管</a>。</p>
+
+<nav><b>目录</b>
+<ol>
+  <li><a href="#s1">为什么要开关电源：LDO 和 DC-DC</a></li>
+  <li><a href="#s2">核心规律：电感伏秒平衡</a></li>
+  <li><a href="#s3">Buck 降压</a></li>
+  <li><a href="#s4">Boost 升压</a></li>
+  <li><a href="#s5">Buck-Boost 升降压（反相型、四开关型、SEPIC）</a></li>
+  <li><a href="#s6">Flyback 反激：带变压器的 Buck-Boost</a></li>
+  <li><a href="#s7">四种拓扑对比与怎么选</a></li>
+  <li><a href="#s8">实际案例：常见芯片和产品</a></li>
+  <li><a href="#s9">值得了解的知识</a></li>
+  <li><a href="#s10">设计流程与工具</a></li>
+  <li><a href="#s11">问答速查</a></li>
+</ol>
+</nav>
+
+<div class="warn">说明：公式都是理想情况（忽略开关管、二极管压降和损耗，CCM 连续模式）。芯片参数是常见量级，具体以规格书为准。</div>
+
+<!-- ============================================================ -->
+<h2 id="s1">1. 为什么要开关电源：LDO 和 DC-DC</h2>
+<figure>
+<svg viewBox="0 0 1000 260">
+  <g>
+    <text x="240" y="24" font-size="15" font-weight="bold" text-anchor="middle" fill="#2980b9">线性稳压 LDO：多出来的电压变成热</text>
+    <rect x="40" y="60" width="90" height="60" rx="6" fill="#d6eaf8" stroke="#2980b9"/><text x="85" y="88" font-size="13" text-anchor="middle">12V</text><text x="85" y="106" font-size="11" text-anchor="middle">1A</text>
+    <rect x="190" y="50" width="110" height="80" rx="6" fill="#fadbd8" stroke="#c0392b"/><text x="245" y="85" font-size="13" text-anchor="middle">LDO</text><text x="245" y="105" font-size="11" text-anchor="middle" fill="#c0392b">发热 7W</text>
+    <rect x="360" y="60" width="90" height="60" rx="6" fill="#d5f5e3" stroke="#27ae60"/><text x="405" y="88" font-size="13" text-anchor="middle">5V</text><text x="405" y="106" font-size="11" text-anchor="middle">1A = 5W</text>
+    <line x1="130" y1="90" x2="188" y2="90" stroke="#333" stroke-width="2" marker-end="url(#ak)"/><line x1="300" y1="90" x2="358" y2="90" stroke="#333" stroke-width="2" marker-end="url(#ak)"/>
+    <text x="40" y="165" font-size="13">效率 = 5/12 ≈ 42%。输入电流 = 输出电流。</text>
+    <text x="40" y="190" font-size="12" fill="#555">优点：便宜、简单、没有纹波噪声、响应快</text>
+    <text x="40" y="210" font-size="12" fill="#555">适合：压差小（如 5V→3.3V）、电流小、给 ADC/射频供电</text>
+  </g>
+  <line x1="500" y1="20" x2="500" y2="240" stroke="#ccc" stroke-width="2"/>
+  <g transform="translate(510,0)">
+    <text x="240" y="24" font-size="15" font-weight="bold" text-anchor="middle" fill="#27ae60">开关电源 DC-DC：用开关 + 电感"搬运"能量</text>
+    <rect x="30" y="60" width="90" height="60" rx="6" fill="#d6eaf8" stroke="#2980b9"/><text x="75" y="88" font-size="13" text-anchor="middle">12V</text><text x="75" y="106" font-size="11" text-anchor="middle">约 0.46A</text>
+    <rect x="180" y="50" width="110" height="80" rx="6" fill="#fdebd0" stroke="#e67e22"/><text x="235" y="85" font-size="13" text-anchor="middle">Buck</text><text x="235" y="105" font-size="11" text-anchor="middle">损耗约 0.5W</text>
+    <rect x="350" y="60" width="90" height="60" rx="6" fill="#d5f5e3" stroke="#27ae60"/><text x="395" y="88" font-size="13" text-anchor="middle">5V</text><text x="395" y="106" font-size="11" text-anchor="middle">1A = 5W</text>
+    <line x1="120" y1="90" x2="178" y2="90" stroke="#333" stroke-width="2" marker-end="url(#ak)"/><line x1="290" y1="90" x2="348" y2="90" stroke="#333" stroke-width="2" marker-end="url(#ak)"/>
+    <text x="30" y="165" font-size="13">效率约 90%。输入电流比输出电流小（功率守恒）。</text>
+    <text x="30" y="190" font-size="12" fill="#555">缺点：有开关纹波和 EMI，外围元件多，布局要讲究</text>
+    <text x="30" y="210" font-size="12" fill="#555">还能升压、反相，这是 LDO 做不到的</text>
+  </g>
+</svg>
+</figure>
+<div class="key">常见组合：<b>DC-DC 先把电压降到接近目标值，再用 LDO 稳出干净的电压</b>（如 12V → Buck → 3.6V → LDO → 3.3V 给 ADC），兼顾效率和噪声。</div>
+
+<!-- ============================================================ -->
+<h2 id="s2">2. 核心规律：电感伏秒平衡</h2>
+<p>所有开关电源都靠电感（或变压器）储能。第一份笔记讲过：稳态时电感两端"电压 × 时间"的正面积必须等于负面积，否则电流会一直涨（饱和）或一直降。用这一条就能推出每种拓扑的电压公式：</p>
+<table>
+<tr><th>拓扑</th><th>开关导通 D·T 时电感电压</th><th>开关关断 (1−D)·T 时电感电压</th><th>伏秒平衡</th><th>结果</th></tr>
+<tr><td>Buck</td><td>Vin − Vo</td><td>−Vo</td><td>(Vin−Vo)·D = Vo·(1−D)</td><td><b>Vo = D · Vin</b></td></tr>
+<tr><td>Boost</td><td>Vin</td><td>Vin − Vo</td><td>Vin·D = (Vo−Vin)·(1−D)</td><td><b>Vo = Vin / (1−D)</b></td></tr>
+<tr><td>Buck-Boost（反相）</td><td>Vin</td><td>−|Vo|</td><td>Vin·D = |Vo|·(1−D)</td><td><b>|Vo| = Vin · D/(1−D)</b>，极性相反</td></tr>
+<tr><td>Flyback</td><td>Vin（初级）</td><td>−Vo·Np/Ns（反射）</td><td>Vin·D = (Np/Ns)·Vo·(1−D)</td><td><b>Vo = (Ns/Np) · Vin · D/(1−D)</b></td></tr>
+</table>
+<p>另一条对偶规律是<b>电容安秒平衡</b>：稳态时电容的平均电流为 0。由它可以推出电感平均电流（Buck 里等于输出电流，Boost 里等于输入电流）。</p>
+
+<figure>
+<svg viewBox="0 0 1000 360">
+  <line x1="80" y1="300" x2="600" y2="300" stroke="#333" marker-end="url(#ak)"/><line x1="80" y1="300" x2="80" y2="50" stroke="#333" marker-end="url(#ak)"/>
+  <text x="560" y="325" font-size="12">占空比 D</text><text x="20" y="60" font-size="12">Vo / Vin</text>
+  <g font-size="11" fill="#555" text-anchor="middle"><text x="80" y="316">0</text><text x="180" y="316">0.2</text><text x="280" y="316">0.4</text><text x="380" y="316">0.6</text><text x="480" y="316">0.8</text><text x="580" y="316">1</text></g>
+  <g font-size="11" fill="#555" text-anchor="end"><text x="74" y="304">0</text><text x="74" y="259">1</text><text x="74" y="214">2</text><text x="74" y="169">3</text><text x="74" y="124">4</text><text x="74" y="79">5</text></g>
+  <line x1="80" y1="255" x2="580" y2="255" stroke="#999" stroke-dasharray="4 3"/>
+  <polyline points="80,300 180,291 280,282 380,273 480,264 580,255" stroke="#2980b9" stroke-width="3" fill="none"/>
+  <polyline points="80,255 180,243.75 280,225 330,210 380,187.5 430,150 455,120 480,75" stroke="#c0392b" stroke-width="3" fill="none"/>
+  <polyline points="80,300 180,288.75 280,270 330,255 380,232.5 430,195 455,165 480,120 496,75" stroke="#27ae60" stroke-width="3" fill="none"/>
+  <circle cx="330" cy="255" r="6" fill="none" stroke="#27ae60" stroke-width="2.5"/>
+  <g font-size="13" font-weight="bold">
+    <text x="440" y="285" fill="#2980b9">Buck：D（永远 ≤ 1）</text>
+    <text x="300" y="150" fill="#c0392b">Boost：1/(1−D)</text>
+    <text x="505" y="110" fill="#27ae60">Buck-Boost</text><text x="505" y="128" fill="#27ae60" font-size="12">D/(1−D)</text>
+  </g>
+  <text x="340" y="250" font-size="11" fill="#27ae60">D=0.5 时 |Vo|=Vin</text>
+  <text x="585" y="259" font-size="11" fill="#999">Vo=Vin</text>
+  <g transform="translate(640,40)" font-size="12">
+    <text x="0" y="10" font-size="14" font-weight="bold">怎么读</text>
+    <text x="0" y="40">· Buck 输出永远低于输入，</text><text x="0" y="58">  而且随 D 线性变化，最好控制</text>
+    <text x="0" y="88">· Boost 输出永远高于输入，</text><text x="0" y="106">  D 越接近 1 增益越陡</text>
+    <text x="0" y="136">· Buck-Boost 跨过 1：</text><text x="0" y="154">  D&lt;0.5 降压，D&gt;0.5 升压</text>
+    <text x="0" y="184" fill="#c0392b">· 实际上开关管、电感有电阻，</text><text x="0" y="202" fill="#c0392b">  D 接近 1 时增益会掉下来，</text><text x="0" y="220" fill="#c0392b">  Boost 实用升压比一般 ≤ 5~6 倍</text>
+    <text x="0" y="250">· 升压比更大时用变压器</text><text x="0" y="268">  （反激、推挽）</text>
+  </g>
+</svg>
+<figcaption>理想电压增益与占空比的关系（CCM）</figcaption>
+</figure>
+
+<!-- ============================================================ -->
+<h2 id="s3">3. Buck 降压</h2>
+<h3>电路和两个状态</h3>
+<figure>
+<svg viewBox="0 0 1000 290">
+  <g>
+    <text x="240" y="22" font-size="15" font-weight="bold" text-anchor="middle" fill="#c0392b">开关导通（D·T）：电源给电感充能、同时供负载</text>
+    <g stroke="#333" stroke-width="2" fill="none">
+      <circle cx="40" cy="140" r="20"/><path d="M40,120 V60 H110"/><path d="M110,60 H150"/><path d="M150,60 H220"/>
+      <path d="M220,60 a10,10 0 0,1 20,0 a10,10 0 0,1 20,0 a10,10 0 0,1 20,0 a10,10 0 0,1 20,0"/>
+      <path d="M300,60 H430 V110"/><rect x="420" y="110" width="20" height="60"/><path d="M430,170 V220"/>
+      <path d="M360,60 V130"/><line x1="345" y1="130" x2="375" y2="130"/><line x1="345" y1="140" x2="375" y2="140"/><path d="M360,140 V220"/>
+      <path d="M40,160 V220 H430"/>
+      <path d="M200,60 V128"/><path d="M200,150 V220"/>
+    </g>
+    <polygon points="188,150 212,150 200,129" fill="#bbb" stroke="#999"/><line x1="188" y1="128" x2="212" y2="128" stroke="#999" stroke-width="2.5"/>
+    <circle cx="110" cy="60" r="3.5" fill="#333"/><circle cx="150" cy="60" r="3.5" fill="#333"/><circle cx="200" cy="60" r="3.5" fill="#333"/>
+    <path d="M48,110 V72 H330 V100" stroke="#e74c3c" stroke-width="3" fill="none" stroke-dasharray="7 4" marker-end="url(#ar)"/>
+    <path d="M420,210 H50 V172" stroke="#e74c3c" stroke-width="3" fill="none" stroke-dasharray="7 4" marker-end="url(#ar)"/>
+    <g font-size="12">
+      <text x="30" y="145" font-size="11">Vin</text><text x="118" y="48">S 闭合</text><text x="250" y="44">L</text><text x="150" y="148" fill="#999">D 截止</text>
+      <text x="380" y="138">C</text><text x="447" y="145">R</text><text x="182" y="48" font-size="11">SW</text>
+      <text x="225" y="125" fill="#c0392b" font-size="11">电感两端 Vin−Vo</text><text x="225" y="141" fill="#c0392b" font-size="11">电流上升</text>
+    </g>
+  </g>
+  <line x1="500" y1="20" x2="500" y2="270" stroke="#ccc" stroke-width="2"/>
+  <g transform="translate(510,0)">
+    <text x="240" y="22" font-size="15" font-weight="bold" text-anchor="middle" fill="#2980b9">开关断开（1−D）·T：电感经二极管续流</text>
+    <g stroke="#333" stroke-width="2" fill="none">
+      <circle cx="40" cy="140" r="20"/><path d="M40,120 V60 H110"/><path d="M110,60 L145,42"/><path d="M150,60 H220"/>
+      <path d="M220,60 a10,10 0 0,1 20,0 a10,10 0 0,1 20,0 a10,10 0 0,1 20,0 a10,10 0 0,1 20,0"/>
+      <path d="M300,60 H430 V110"/><rect x="420" y="110" width="20" height="60"/><path d="M430,170 V220"/>
+      <path d="M360,60 V130"/><line x1="345" y1="130" x2="375" y2="130"/><line x1="345" y1="140" x2="375" y2="140"/><path d="M360,140 V220"/>
+      <path d="M40,160 V220 H430"/>
+      <path d="M200,60 V128"/><path d="M200,150 V220"/>
+    </g>
+    <polygon points="188,150 212,150 200,129" fill="#2980b9" stroke="#333"/><line x1="188" y1="128" x2="212" y2="128" stroke="#333" stroke-width="2.5"/>
+    <circle cx="110" cy="60" r="3.5" fill="#333"/><circle cx="150" cy="60" r="3.5" fill="#333"/><circle cx="200" cy="60" r="3.5" fill="#333"/>
+    <path d="M212,200 V72 H330 V100" stroke="#2980b9" stroke-width="3" fill="none" stroke-dasharray="7 4" marker-end="url(#ab)"/>
+    <path d="M420,210 H222" stroke="#2980b9" stroke-width="3" fill="none" stroke-dasharray="7 4" marker-end="url(#ab)"/>
+    <g font-size="12">
+      <text x="30" y="145" font-size="11">Vin</text><text x="118" y="36">S 断开</text><text x="250" y="44">L</text><text x="150" y="148" fill="#2980b9">D 导通</text>
+      <text x="380" y="138">C</text><text x="447" y="145">R</text>
+      <text x="228" y="125" fill="#2980b9" font-size="11">电感两端 −Vo</text><text x="228" y="141" fill="#2980b9" font-size="11">电流下降</text>
+      <text x="40" y="260" fill="#555">SW 点被二极管拉到约 −0.5V；电源这时不提供电流</text>
+    </g>
+  </g>
+</svg>
+<figcaption>电感电流一直流向负载，只是导通时从电源来、关断时经二极管续流。所以 Buck 的输出电流连续、纹波小，输入电流是断续的脉冲。</figcaption>
+</figure>
+
+<h3>波形</h3>
+<figure>
+<svg viewBox="0 0 1000 420">
+  <g font-size="13" font-weight="bold"><text x="8" y="70">SW 点电压</text><text x="8" y="170">电感电压</text><text x="8" y="270">电感电流</text><text x="8" y="370">输出纹波</text></g>
+  <g stroke="#ddd" stroke-dasharray="3 3"><line x1="140" y1="30" x2="140" y2="400"/><line x1="300" y1="30" x2="300" y2="400"/><line x1="540" y1="30" x2="540" y2="400"/><line x1="700" y1="30" x2="700" y2="400"/><line x1="940" y1="30" x2="940" y2="400"/></g>
+  <path d="M120,95 H140 V45 H300 V95 H540 V45 H700 V95 H940" stroke="#2c3e50" stroke-width="2.3" fill="none"/>
+  <text x="150" y="40" font-size="11">Vin</text><text x="310" y="110" font-size="11">≈0</text>
+  <line x1="120" y1="170" x2="950" y2="170" stroke="#999"/>
+  <rect x="140" y="140" width="160" height="30" fill="#e74c3c" opacity="0.3"/><rect x="300" y="170" width="240" height="20" fill="#2980b9" opacity="0.3"/>
+  <rect x="540" y="140" width="160" height="30" fill="#e74c3c" opacity="0.3"/><rect x="700" y="170" width="240" height="20" fill="#2980b9" opacity="0.3"/>
+  <path d="M140,140 H300 V190 H540 V140 H700 V190 H940" stroke="#8e44ad" stroke-width="2.3" fill="none"/>
+  <text x="150" y="135" font-size="11" fill="#c0392b">+(Vin−Vo)</text><text x="310" y="205" font-size="11" fill="#2980b9">−Vo</text>
+  <text x="550" y="215" font-size="11" fill="#555">红色面积 = 蓝色面积（伏秒平衡）</text>
+  <line x1="120" y1="270" x2="950" y2="270" stroke="#999" stroke-dasharray="4 3"/>
+  <path d="M140,290 L300,245 L540,290 L700,245 L940,290" stroke="#e67e22" stroke-width="2.5" fill="none"/>
+  <text x="955" y="274" font-size="11">Io</text>
+  <line x1="725" y1="245" x2="725" y2="290" stroke="#333" marker-start="url(#ak)" marker-end="url(#ak)"/><text x="732" y="272" font-size="11">ΔI</text>
+  <path d="M140,370 Q220,372 300,362 Q420,352 540,370 Q620,372 700,362 Q820,352 940,370" stroke="#27ae60" stroke-width="2.3" fill="none"/>
+  <text x="300" y="395" font-size="11" fill="#27ae60">电感电流高于 Io 时给电容充电，低于时电容放电 → 小纹波 ΔV</text>
+  <text x="140" y="22" font-size="11" fill="#555">导通 D·T</text><text x="300" y="22" font-size="11" fill="#555">关断 (1−D)·T</text>
+</svg>
+</figure>
+<pre>电感纹波电流     ΔI  = (Vin − Vo) · D / (f · L)          （一般取 Io 的 20%~40%）
+电感峰值电流     Ipk = Io + ΔI/2                          （电感饱和电流 Isat 要大于它，留余量）
+输出电压纹波     ΔV ≈ ΔI / (8 · f · Cout) + ΔI · ESR       （MLCC 的 ESR 很小，电解电容 ESR 占主导）
+输入电容电流有效值 Icin ≈ Io · √(D·(1−D))                  （D=0.5 时最大，约 Io/2）</pre>
+
+<h3>计算例：12V → 5V / 2A，500kHz</h3>
+<pre>D    = 5 / 12 ≈ 0.42
+ΔI   取 30% × 2A = 0.6A
+L    = (12 − 5) × 0.42 / (500k × 0.6) ≈ 9.7µH  → 选 10µH
+Ipk  = 2 + 0.3 = 2.3A                        → 电感 Isat ≥ 3A
+Cout = 22µF MLCC：ΔV ≈ 0.6 / (8 × 500k × 22µ) ≈ 6.8mV（加上 ESR 和直流偏压容量下降，实际取 2×22µF）
+Cin  有效值电流 ≈ 2 × √(0.42 × 0.58) ≈ 1A   → 输入电容要能扛 1A 纹波电流</pre>
+
+<h3>同步 Buck：用 MOS 管代替二极管</h3>
+<figure>
+<svg viewBox="0 0 1000 250">
+  <g stroke="#333" stroke-width="2" fill="none">
+    <circle cx="60" cy="140" r="20"/><path d="M60,120 V60 H160"/><rect x="160" y="48" width="60" height="24" fill="#fadbd8"/><path d="M220,60 H280"/>
+    <path d="M280,60 V100"/><rect x="268" y="100" width="24" height="60" fill="#d6eaf8"/><path d="M280,160 V210"/>
+    <path d="M280,60 H330"/><path d="M330,60 a10,10 0 0,1 20,0 a10,10 0 0,1 20,0 a10,10 0 0,1 20,0 a10,10 0 0,1 20,0"/><path d="M410,60 H520 V110"/><rect x="510" y="110" width="20" height="60"/><path d="M520,170 V210"/>
+    <path d="M460,60 V125"/><line x1="445" y1="125" x2="475" y2="125"/><line x1="445" y1="135" x2="475" y2="135"/><path d="M460,135 V210"/>
+    <path d="M60,160 V210 H520"/>
+  </g>
+  <circle cx="280" cy="60" r="3.5"/>
+  <g font-size="12"><text x="168" y="42">Q1 上管</text><text x="298" y="135">Q2 下管</text><text x="360" y="44">L</text><text x="285" y="52" font-size="11">SW</text><text x="50" y="145" font-size="11">Vin</text></g>
+  <g transform="translate(580,30)" font-size="12">
+    <text x="0" y="10" font-size="14" font-weight="bold">为什么要同步</text>
+    <text x="0" y="38">· 12V→1V 时 D 只有 8%，92% 的时间电流</text><text x="0" y="56">  走二极管：0.5V × 10A = 5W，太亏</text>
+    <text x="0" y="84">· 换成 MOS：10A² × 3mΩ = 0.3W</text>
+    <text x="0" y="112">· Q1、Q2 不能同时导通（直通），</text><text x="0" y="130">  中间有几十 ns 死区，死区里电流</text><text x="0" y="148">  走 Q2 的体二极管</text>
+    <text x="0" y="176">· 上管 Q1 是高边 NMOS，要用</text><text x="0" y="194">  自举电容（BOOT 引脚）驱动</text>
+  </g>
+</svg>
+<figcaption>现在大多数 Buck 芯片都是同步型，两个 MOS 集成在芯片内部，外面只接电感和电容。</figcaption>
+</figure>
+<div class="key">
+· <b>多相 Buck</b>：电脑 CPU/显卡供电（约 1V、几百安）用 6~20 相 Buck 并联，每相错开相位工作，纹波互相抵消，每相只负责几十安。主板上 CPU 旁边一排电感和 MOS 就是它，常说的"几相供电"指的就是这个。<br>
+· <b>Buck 的弱点</b>：上管短路时 Vin 直接加到输出，会烧掉后面的芯片，所以重要场合输出要加过压保护。
+</div>
+
+<!-- ============================================================ -->
+<h2 id="s4">4. Boost 升压</h2>
+<figure>
+<svg viewBox="0 0 1000 290">
+  <g>
+    <text x="240" y="22" font-size="15" font-weight="bold" text-anchor="middle" fill="#c0392b">开关导通：电感接地充能，电容单独供负载</text>
+    <g stroke="#333" stroke-width="2" fill="none">
+      <circle cx="40" cy="140" r="20"/><path d="M40,120 V60 H80"/>
+      <path d="M80,60 a10,10 0 0,1 20,0 a10,10 0 0,1 20,0 a10,10 0 0,1 20,0 a10,10 0 0,1 20,0"/><path d="M160,60 H260"/>
+      <path d="M200,60 V115"/><path d="M200,155 V220"/><path d="M200,115 V155"/>
+      <path d="M282,60 H430 V110"/><rect x="420" y="110" width="20" height="60"/><path d="M430,170 V220"/>
+      <path d="M360,60 V130"/><line x1="345" y1="130" x2="375" y2="130"/><line x1="345" y1="140" x2="375" y2="140"/><path d="M360,140 V220"/>
+      <path d="M40,160 V220 H430"/>
+    </g>
+    <circle cx="200" cy="115" r="3.5"/><circle cx="200" cy="155" r="3.5"/><circle cx="200" cy="60" r="3.5"/>
+    <polygon points="260,48 260,72 281,60" fill="#bbb" stroke="#999"/><line x1="282" y1="48" x2="282" y2="72" stroke="#999" stroke-width="2.5"/>
+    <path d="M48,110 V72 H190 V200" stroke="#e74c3c" stroke-width="3" fill="none" stroke-dasharray="7 4" marker-end="url(#ar)"/>
+    <path d="M185,212 H52 V172" stroke="#e74c3c" stroke-width="3" fill="none" stroke-dasharray="7 4" marker-end="url(#ar)"/>
+    <path d="M372,145 V200 H415 V180" stroke="#2980b9" stroke-width="2" fill="none" marker-end="url(#ab)"/>
+    <g font-size="12">
+      <text x="30" y="145" font-size="11">Vin</text><text x="110" y="44">L</text><text x="210" y="140">S 闭合</text><text x="255" y="44" fill="#999">D 截止</text>
+      <text x="380" y="138">C</text><text x="447" y="145">R</text>
+      <text x="62" y="98" fill="#c0392b" font-size="11">电感两端 Vin</text><text x="62" y="114" fill="#c0392b" font-size="11">电流上升</text>
+      <text x="300" y="250" fill="#2980b9" font-size="11">C 放电给负载</text>
+    </g>
+  </g>
+  <line x1="500" y1="20" x2="500" y2="270" stroke="#ccc" stroke-width="2"/>
+  <g transform="translate(510,0)">
+    <text x="240" y="22" font-size="15" font-weight="bold" text-anchor="middle" fill="#2980b9">开关断开：电源 + 电感"串联"一起给输出</text>
+    <g stroke="#333" stroke-width="2" fill="none">
+      <circle cx="40" cy="140" r="20"/><path d="M40,120 V60 H80"/>
+      <path d="M80,60 a10,10 0 0,1 20,0 a10,10 0 0,1 20,0 a10,10 0 0,1 20,0 a10,10 0 0,1 20,0"/><path d="M160,60 H260"/>
+      <path d="M200,60 V115"/><path d="M200,115 L222,148"/><path d="M200,155 V220"/>
+      <path d="M282,60 H430 V110"/><rect x="420" y="110" width="20" height="60"/><path d="M430,170 V220"/>
+      <path d="M360,60 V130"/><line x1="345" y1="130" x2="375" y2="130"/><line x1="345" y1="140" x2="375" y2="140"/><path d="M360,140 V220"/>
+      <path d="M40,160 V220 H430"/>
+    </g>
+    <circle cx="200" cy="115" r="3.5"/><circle cx="200" cy="155" r="3.5"/><circle cx="200" cy="60" r="3.5"/>
+    <polygon points="260,48 260,72 281,60" fill="#2980b9" stroke="#333"/><line x1="282" y1="48" x2="282" y2="72" stroke="#333" stroke-width="2.5"/>
+    <path d="M48,110 V72 H330 V100" stroke="#2980b9" stroke-width="3" fill="none" stroke-dasharray="7 4" marker-end="url(#ab)"/>
+    <path d="M420,210 H52 V172" stroke="#2980b9" stroke-width="3" fill="none" stroke-dasharray="7 4" marker-end="url(#ab)"/>
+    <g font-size="12">
+      <text x="30" y="145" font-size="11">Vin</text><text x="110" y="44">L</text><text x="228" y="140">S 断开</text><text x="250" y="44" fill="#2980b9">D 导通</text>
+      <text x="380" y="138">C</text><text x="447" y="145">R</text>
+      <text x="62" y="98" fill="#2980b9" font-size="11">电感两端 Vin−Vo（负）</text><text x="62" y="114" fill="#2980b9" font-size="11">电流下降</text>
+      <text x="40" y="250" fill="#555" font-size="11">电感电压叠在 Vin 上面，所以输出比输入高</text>
+    </g>
+  </g>
+</svg>
+<figcaption>Boost 和 Buck 正好对偶：输入电流连续（经过电感），输出电流是断续的脉冲（只在关断时经二极管送出），所以 Boost 输出电容压力大、纹波大。</figcaption>
+</figure>
+<pre>电感平均电流 = 输入电流 Iin = Io / (1 − D)       （理想；实际再除以效率）
+电感纹波电流 ΔI = Vin · D / (f · L)
+开关管、二极管承受电压 ≈ Vo</pre>
+<h3>计算例：锂电池 3.7V → 5V / 1A（充电宝），1MHz</h3>
+<pre>D    = 1 − 3.7/5 = 0.26
+Iin  = 1 / 0.74 ≈ 1.35A，按 90% 效率约 1.5A（电池电流比输出大）
+ΔI   取 30% × 1.5A ≈ 0.45A
+L    = 3.7 × 0.26 / (1M × 0.45) ≈ 2.1µH → 选 2.2µH，Isat ≥ 2.5A
+电池电压掉到 3.0V 时：D = 0.4，Iin ≈ 1.85A，电感和开关管按这个最坏情况选</pre>
+<div class="warn"><b>Boost 的三个坑：</b><br>
+① <b>关不断</b>：开关不工作时，输入经电感、二极管直接通到输出（Vo ≈ Vin − 0.5V）。输出短路时没法限流，电流只受电池内阻限制。需要"真关断"芯片或额外加负载开关。<br>
+② <b>不能空载乱升</b>：反馈断开（FB 引脚虚焊）时占空比拉满，输出可能升到几十伏烧坏电容和负载，要加 OVP。<br>
+③ <b>右半平面零点（RHP zero）</b>：负载突然加大时，Boost 要先加大占空比，结果关断时间变短、送到输出的能量反而先减少，电压先往下掉再回升。所以 Boost 环路带宽不能做太高，动态响应比 Buck 慢。Buck-Boost 和反激也有同样的问题。</div>
+
+<!-- ============================================================ -->
+<h2 id="s5">5. Buck-Boost 升降压</h2>
+<h3>5.1 反相 Buck-Boost（经典型）</h3>
+<figure>
+<svg viewBox="0 0 1000 290">
+  <g>
+    <text x="240" y="22" font-size="15" font-weight="bold" text-anchor="middle" fill="#c0392b">开关导通：电感接在电源两端充能</text>
+    <g stroke="#333" stroke-width="2" fill="none">
+      <circle cx="40" cy="140" r="20"/><path d="M40,120 V60 H110"/><path d="M110,60 H150"/><path d="M150,60 H256"/>
+      <path d="M200,60 V90"/><path d="M200,90 a10,10 0 0,1 0,20 a10,10 0 0,1 0,20 a10,10 0 0,1 0,20 a10,10 0 0,1 0,20"/><path d="M200,170 V220"/>
+      <path d="M280,60 H430 V110"/><rect x="420" y="110" width="20" height="60"/><path d="M430,170 V220"/>
+      <path d="M360,60 V130"/><line x1="345" y1="130" x2="375" y2="130"/><line x1="345" y1="140" x2="375" y2="140"/><path d="M360,140 V220"/>
+      <path d="M40,160 V220 H430"/>
+    </g>
+    <circle cx="110" cy="60" r="3.5"/><circle cx="150" cy="60" r="3.5"/><circle cx="200" cy="60" r="3.5"/>
+    <polygon points="280,48 280,72 258,60" fill="#bbb" stroke="#999"/><line x1="256" y1="48" x2="256" y2="72" stroke="#999" stroke-width="2.5"/>
+    <path d="M48,110 V72 H188 V200" stroke="#e74c3c" stroke-width="3" fill="none" stroke-dasharray="7 4" marker-end="url(#ar)"/>
+    <path d="M185,212 H52 V172" stroke="#e74c3c" stroke-width="3" fill="none" stroke-dasharray="7 4" marker-end="url(#ar)"/>
+    <g font-size="12">
+      <text x="30" y="145" font-size="11">Vin</text><text x="118" y="48">S 闭合</text><text x="215" y="135">L</text><text x="255" y="44" fill="#999">D 截止</text>
+      <text x="380" y="138">C</text><text x="447" y="145">R</text>
+      <text x="290" y="100" fill="#555" font-size="11">输出端（−）</text>
+    </g>
+  </g>
+  <line x1="500" y1="20" x2="500" y2="270" stroke="#ccc" stroke-width="2"/>
+  <g transform="translate(510,0)">
+    <text x="240" y="22" font-size="15" font-weight="bold" text-anchor="middle" fill="#2980b9">开关断开：电感把能量倒给输出（极性反）</text>
+    <g stroke="#333" stroke-width="2" fill="none">
+      <circle cx="40" cy="140" r="20"/><path d="M40,120 V60 H110"/><path d="M110,60 L145,42"/><path d="M150,60 H256"/>
+      <path d="M200,60 V90"/><path d="M200,90 a10,10 0 0,1 0,20 a10,10 0 0,1 0,20 a10,10 0 0,1 0,20 a10,10 0 0,1 0,20"/><path d="M200,170 V220"/>
+      <path d="M280,60 H430 V110"/><rect x="420" y="110" width="20" height="60"/><path d="M430,170 V220"/>
+      <path d="M360,60 V130"/><line x1="345" y1="130" x2="375" y2="130"/><line x1="345" y1="140" x2="375" y2="140"/><path d="M360,140 V220"/>
+      <path d="M40,160 V220 H430"/>
+    </g>
+    <circle cx="110" cy="60" r="3.5"/><circle cx="150" cy="60" r="3.5"/><circle cx="200" cy="60" r="3.5"/>
+    <polygon points="280,48 280,72 258,60" fill="#2980b9" stroke="#333"/><line x1="256" y1="48" x2="256" y2="72" stroke="#333" stroke-width="2.5"/>
+    <path d="M212,80 V200" stroke="#2980b9" stroke-width="3" fill="none" stroke-dasharray="7 4" marker-end="url(#ab)"/>
+    <path d="M215,210 H448 V75 H220" stroke="#2980b9" stroke-width="3" fill="none" stroke-dasharray="7 4" marker-end="url(#ab)"/>
+    <g font-size="12">
+      <text x="30" y="145" font-size="11">Vin</text><text x="118" y="36">S 断开</text><text x="222" y="135">L</text><text x="252" y="44" fill="#2980b9">D 导通</text>
+      <text x="380" y="138">C</text>
+      <text x="40" y="250" fill="#555" font-size="11">电流从地经负载流向输出端 → 输出端电压低于地，是负电压</text>
+    </g>
+  </g>
+</svg>
+<figcaption>输入和输出从不同时连通：导通时只充能，关断时只放能。这正是反激的工作方式，把这里的电感换成带两个绕组的变压器就是反激（第 6 节）。</figcaption>
+</figure>
+<p><b>用途</b>：从正电源得到负电压，例如给运放提供 −5V、LCD 负压。缺点是输出反相，开关管和二极管要承受 Vin + |Vo|。</p>
+
+<h3>5.2 四开关 Buck-Boost（同相，现在最常用）</h3>
+<figure>
+<svg viewBox="0 0 1000 300">
+  <g stroke="#333" stroke-width="2" fill="none">
+    <path d="M40,60 V200"/><line x1="25" y1="120" x2="55" y2="120"/><line x1="25" y1="130" x2="55" y2="130"/>
+    <path d="M40,60 H120"/><rect x="120" y="48" width="60" height="24" fill="#fadbd8"/><path d="M180,60 H220"/>
+    <path d="M220,60 V110"/><rect x="208" y="110" width="24" height="60" fill="#d6eaf8"/><path d="M220,170 V230"/>
+    <path d="M220,60 H250"/><path d="M250,60 a10,10 0 0,1 20,0 a10,10 0 0,1 20,0 a10,10 0 0,1 20,0 a10,10 0 0,1 20,0"/><path d="M330,60 H360"/>
+    <path d="M360,60 V110"/><rect x="348" y="110" width="24" height="60" fill="#d6eaf8"/><path d="M360,170 V230"/>
+    <path d="M360,60 H400"/><rect x="400" y="48" width="60" height="24" fill="#fadbd8"/><path d="M460,60 H520 V230"/>
+    <line x1="505" y1="120" x2="535" y2="120"/><line x1="505" y1="130" x2="535" y2="130"/>
+    <path d="M40,200 V230 H520"/>
+  </g>
+  <circle cx="220" cy="60" r="3.5"/><circle cx="360" cy="60" r="3.5"/>
+  <g font-size="12">
+    <text x="10" y="50">Vin</text><text x="135" y="42">Q1</text><text x="238" y="145">Q2</text><text x="282" y="44">L</text><text x="378" y="145">Q3</text><text x="418" y="42">Q4</text><text x="525" y="50">Vout</text>
+    <text x="80" y="268" fill="#555">左半边（Q1/Q2）就是 Buck，右半边（Q3/Q4）就是 Boost，共用一个电感</text>
+  </g>
+  <g transform="translate(580,20)">
+    <rect x="0" y="0" width="400" height="230" rx="6" fill="#fff" stroke="#999"/>
+    <g font-size="12">
+      <text x="10" y="24" font-size="13" font-weight="bold">三种工作模式（芯片自动切换）</text>
+      <text x="10" y="54" font-weight="bold" fill="#2980b9">Vin &gt; Vout：Buck 模式</text>
+      <text x="10" y="72">Q4 常通、Q3 常断，Q1/Q2 开关</text>
+      <text x="10" y="104" font-weight="bold" fill="#c0392b">Vin &lt; Vout：Boost 模式</text>
+      <text x="10" y="122">Q1 常通、Q2 常断，Q3/Q4 开关</text>
+      <text x="10" y="154" font-weight="bold" fill="#27ae60">Vin ≈ Vout：Buck-Boost 混合</text>
+      <text x="10" y="172">四个管子都开关，平滑过渡</text>
+      <text x="10" y="204" fill="#555">每个时刻只有一半在"开关"，效率</text>
+      <text x="10" y="220" fill="#555">接近单独的 Buck / Boost，可达 95%</text>
+    </g>
+  </g>
+</svg>
+</figure>
+<p><b>典型场景</b>：输入电压范围跨过输出电压。锂电池 3.0~4.2V 输出 3.3V；车载 PD 充电器 9~16V 输入要输出 5~20V；充电宝的双向 PD 快充（电池 7.4V，输出 5V 或 20V，还要反过来给电池充电）。</p>
+
+<h3>5.3 SEPIC（了解即可）</h3>
+<p>SEPIC 用两个电感（或一个耦合电感）加一个串联电容，实现同相升降压，输出 Vo = Vin · D/(1−D)。优点是只需要一个开关管、输入电流连续、输出能真正关断；缺点是元件多、效率比四开关低。常见于 LED 驱动和汽车电子。</p>
+
+<!-- ============================================================ -->
+<h2 id="s6">6. Flyback 反激：带变压器的 Buck-Boost</h2>
+<figure>
+<svg viewBox="0 0 1000 270">
+  <g>
+    <text x="230" y="22" font-size="14" font-weight="bold" text-anchor="middle">反相 Buck-Boost</text>
+    <g stroke="#333" stroke-width="2" fill="none">
+      <circle cx="40" cy="130" r="18"/><path d="M40,112 V60 H100"/><rect x="100" y="50" width="40" height="20" fill="#fadbd8"/><path d="M140,60 H260"/>
+      <path d="M200,60 V80"/><path d="M200,80 a10,10 0 0,1 0,20 a10,10 0 0,1 0,20 a10,10 0 0,1 0,20 a10,10 0 0,1 0,20"/><path d="M200,160 V200"/>
+      <path d="M282,60 H400 V200"/><path d="M40,148 V200 H400"/>
+    </g>
+    <polygon points="282,48 282,72 260,60" fill="#2980b9"/><line x1="258" y1="48" x2="258" y2="72" stroke="#333" stroke-width="2.5"/>
+    <text x="215" y="125" font-size="12">一个电感</text><text x="105" y="44" font-size="11">S</text>
+    <text x="40" y="235" font-size="12" fill="#555">输入、输出共地，输出反相</text>
+  </g>
+  <text x="485" y="135" font-size="30" fill="#d35400">→</text>
+  <g transform="translate(520,0)">
+    <text x="230" y="22" font-size="14" font-weight="bold" text-anchor="middle">Flyback 反激</text>
+    <g stroke="#333" stroke-width="2" fill="none">
+      <circle cx="40" cy="130" r="18"/><path d="M40,112 V60 H170 V80"/>
+      <path d="M170,80 a10,10 0 0,1 0,20 a10,10 0 0,1 0,20 a10,10 0 0,1 0,20 a10,10 0 0,1 0,20"/><path d="M170,160 V170"/><rect x="160" y="170" width="20" height="30" fill="#fadbd8"/><path d="M170,200 V215 H40 V148"/>
+      <line x1="196" y1="75" x2="196" y2="165"/><line x1="202" y1="75" x2="202" y2="165"/>
+      <path d="M228,80 a10,10 0 0,0 0,20 a10,10 0 0,0 0,20 a10,10 0 0,0 0,20 a10,10 0 0,0 0,20"/>
+      <path d="M228,80 V60 H290"/><path d="M312,60 H420 V200 H228 V160"/>
+    </g>
+    <polygon points="290,48 290,72 311,60" fill="#2980b9"/><line x1="312" y1="48" x2="312" y2="72" stroke="#333" stroke-width="2.5"/>
+    <circle cx="160" cy="83" r="4"/><circle cx="238" cy="157" r="4"/>
+    <text x="185" y="190" font-size="11">S</text><text x="120" y="125" font-size="12">Np</text><text x="240" y="125" font-size="12">Ns</text>
+    <line x1="215" y1="30" x2="215" y2="250" stroke="#e74c3c" stroke-dasharray="5 4"/>
+    <text x="40" y="250" font-size="12" fill="#555">耦合电感：同名端相反，输出不再反相；初次级隔离；匝比可调电压</text>
+  </g>
+</svg>
+<figcaption>把 Buck-Boost 的电感拆成两个绕在同一磁芯上的绕组，就得到反激。工作方式完全一样：导通时初级储能、次级二极管截止；关断时能量从次级放出。</figcaption>
+</figure>
+<table>
+<tr><th>反激比 Buck-Boost 多了什么</th><th>说明</th></tr>
+<tr><td>电气隔离</td><td>220V 进、手机端出，初次级之间只有磁耦合，这是安规要求</td></tr>
+<tr><td>匝比</td><td>Vo = (Ns/Np)·Vin·D/(1−D)。310V → 5V 不需要极小的占空比，靠匝比先降下来</td></tr>
+<tr><td>多路输出</td><td>多绕几个次级就有多路电压，辅助绕组给芯片供电就是一路</td></tr>
+<tr><td>漏感</td><td>两个绕组耦合不完美，关断时有尖峰，需要 RCD 或有源钳位</td></tr>
+</table>
+<p>完整的反激电路分析、启动、反馈、EMI 见 <a href="LD7575学习笔记.html">LD7575 学习笔记</a>；氮化镓准谐振反激见 <a href="GaN快充学习笔记.html">GaN 快充学习笔记</a>。</p>
+<div class="key"><b>正激家族</b>：Buck 加上变压器得到正激（Forward），再演变出推挽、半桥、全桥，<a href="350W工业电源学习笔记.html">350W 工业电源</a>的输出级（变压器 + 整流 + 输出电感）就是一个 Buck。这样所有常见拓扑都可以归到两大家族：<b>Buck 家族</b>（正激、半桥、全桥、LLC 的输出侧近似）和 <b>Buck-Boost 家族</b>（反激）。</div>
+
+<!-- ============================================================ -->
+<h2 id="s7">7. 四种拓扑对比与怎么选</h2>
+<table>
+<tr><th></th><th>Buck</th><th>Boost</th><th>Buck-Boost（四开关）</th><th>Flyback</th></tr>
+<tr><td>电压关系</td><td>Vo &lt; Vin</td><td>Vo &gt; Vin</td><td>Vo 可高可低</td><td>任意，靠匝比</td></tr>
+<tr><td>公式（CCM）</td><td>D·Vin</td><td>Vin/(1−D)</td><td>Buck/Boost 自动切换</td><td>(Ns/Np)·Vin·D/(1−D)</td></tr>
+<tr><td>隔离</td><td colspan="3">不隔离</td><td>隔离</td></tr>
+<tr><td>输入电流</td><td>断续（输入电容压力大）</td><td>连续</td><td>依模式</td><td>断续</td></tr>
+<tr><td>输出电流</td><td>连续（纹波小）</td><td>断续（输出电容压力大）</td><td>依模式</td><td>断续</td></tr>
+<tr><td>开关管耐压</td><td>Vin</td><td>Vo</td><td>Vin 或 Vo 较大者</td><td>Vin + 反射电压 + 尖峰</td></tr>
+<tr><td>短路保护</td><td>容易（关上管）</td><td>难（输入直通）</td><td>容易</td><td>容易</td></tr>
+<tr><td>环路</td><td>好补偿，响应快</td><td>有 RHP 零点</td><td>Boost 模式下有 RHP 零点</td><td>有 RHP 零点（CCM）</td></tr>
+<tr><td>典型效率</td><td>90~97%</td><td>85~95%</td><td>90~95%</td><td>80~93%</td></tr>
+<tr><td>典型功率</td><td>mW ~ 几百 W（多相上千 W）</td><td>mW ~ 几百 W</td><td>几 W ~ 100W 级</td><td>几 W ~ 150W</td></tr>
+</table>
+
+<figure>
+<svg viewBox="0 0 1000 330">
+  <g font-size="13" text-anchor="middle">
+    <rect x="380" y="10" width="240" height="44" rx="8" fill="#d6eaf8" stroke="#2980b9"/><text x="500" y="38">需要和输入隔离吗？（市电进来）</text>
+    <rect x="700" y="90" width="270" height="56" rx="8" fill="#fadbd8" stroke="#c0392b"/><text x="835" y="114">&lt;150W：反激</text><text x="835" y="134" font-size="11">&gt;150W：正激 / 半桥 / 全桥 / LLC</text>
+    <rect x="300" y="90" width="400" height="44" rx="8" fill="#d6eaf8" stroke="#2980b9"/><text x="500" y="118">输入电压范围和输出比较</text>
+    <rect x="20" y="190" width="200" height="70" rx="8" fill="#d5f5e3" stroke="#27ae60"/><text x="120" y="215">始终 Vin &gt; Vo</text><text x="120" y="238" font-weight="bold">Buck</text><text x="120" y="254" font-size="11">压差小、电流小、怕噪声 → LDO</text>
+    <rect x="250" y="190" width="200" height="70" rx="8" fill="#fdebd0" stroke="#e67e22"/><text x="350" y="215">始终 Vin &lt; Vo</text><text x="350" y="238" font-weight="bold">Boost</text><text x="350" y="254" font-size="11">升压 &gt;6 倍考虑变压器</text>
+    <rect x="480" y="190" width="220" height="70" rx="8" fill="#ebdef0" stroke="#8e44ad"/><text x="590" y="215">Vin 范围跨过 Vo</text><text x="590" y="238" font-weight="bold">四开关 Buck-Boost</text><text x="590" y="254" font-size="11">或 SEPIC</text>
+    <rect x="730" y="190" width="240" height="70" rx="8" fill="#eaeded" stroke="#555"/><text x="850" y="215">需要负电压</text><text x="850" y="238" font-weight="bold">反相 Buck-Boost</text><text x="850" y="254" font-size="11">小电流可用电荷泵</text>
+  </g>
+  <g stroke="#333" stroke-width="1.6" fill="none">
+    <path d="M620,32 H835 V88" marker-end="url(#ak)"/><line x1="500" y1="54" x2="500" y2="88" marker-end="url(#ak)"/>
+    <path d="M400,134 V160 H120 V188" marker-end="url(#ak)"/><path d="M450,134 V170 H350 V188" marker-end="url(#ak)"/>
+    <path d="M550,134 V170 H590 V188" marker-end="url(#ak)"/><path d="M600,134 V160 H850 V188" marker-end="url(#ak)"/>
+  </g>
+  <g font-size="12" fill="#555"><text x="660" y="26">要</text><text x="508" y="76">不要</text></g>
+  <text x="20" y="305" font-size="12" fill="#555">实际选型还要看：效率要求、体积、成本、EMI、输入范围、负载变化快不快。最省事的办法是先在 TI、MPS、矽力杰等厂家的选型工具里输入 Vin、Vo、Io 筛芯片。</text>
+</svg>
+</figure>
+
+<!-- ============================================================ -->
+<h2 id="s8">8. 实际案例：常见芯片和产品</h2>
+<h3>Buck</h3>
+<table>
+<tr><th width="190">芯片 / 产品</th><th width="200">参数（大致）</th><th>说明</th></tr>
+<tr><td>LM2596 降压模块（淘宝蓝色小板）</td><td>输入最高约 40V，3A，150kHz，非同步</td><td>最经典的入门 Buck，外接肖特基二极管和大电感。频率低所以电感大，效率 80% 左右。注意市面上有不少仿制芯片</td></tr>
+<tr><td>MP1584 模块</td><td>输入约 4.5~28V，3A 级，最高 1.5MHz</td><td>体积比 LM2596 小很多，适合嵌在项目里</td></tr>
+<tr><td>同步 Buck 芯片（如 TI TPS5430/TPS54xxx、MPS MP2315、矽力杰 SY8xxx 等）</td><td>几 A，500kHz~2MHz，集成上下管</td><td>12V/5V 转 3.3V/1.8V/1.2V 的主流做法，STM32 板子常用</td></tr>
+<tr><td>车充 / 车载 USB</td><td>12~24V → 5V</td><td>Buck；支持 PD 20V 输出的车充要用四开关 Buck-Boost</td></tr>
+<tr><td>电脑 CPU/GPU 供电</td><td>12V → 约 1V，几百 A</td><td>多相同步 Buck，每相是 DrMOS（驱动+上下管集成）+ 电感</td></tr>
+<tr><td>手机 PMIC</td><td>电池 → 各路 0.6~1.8V</td><td>一颗芯片里集成十几路 Buck 和 LDO</td></tr>
+<tr><td>电动车 DC-DC</td><td>48~72V → 12V</td><td>大功率 Buck，给车灯、喇叭、仪表供电</td></tr>
+</table>
+<h3>Boost</h3>
+<table>
+<tr><th width="190">芯片 / 产品</th><th width="200">参数（大致）</th><th>说明</th></tr>
+<tr><td>MT3608 升压模块</td><td>输入 2~24V，输出最高约 28V，1.2MHz</td><td>常见的小升压板，3.7V 升 5V/9V/12V，电流不大</td></tr>
+<tr><td>充电宝 5V 输出</td><td>锂电 3.0~4.2V → 5V</td><td>同步 Boost，通常和充电、电量显示集成在一颗芯片里</td></tr>
+<tr><td>LED 背光驱动</td><td>电池 → 几十伏串联 LED</td><td>Boost 做恒流（反馈采 LED 电流而不是电压），笔记本/手机屏幕背光</td></tr>
+<tr><td>PFC 功率因数校正</td><td>整流后 → 约 390V</td><td>Boost 的输入电流连续，适合让电流跟着电压呈正弦形。见 IGBT 笔记的变频空调部分</td></tr>
+<tr><td>光伏 MPPT</td><td>光伏板电压 → 母线</td><td>Boost 调节占空比，让光伏板工作在最大功率点</td></tr>
+</table>
+<h3>Buck-Boost</h3>
+<table>
+<tr><th width="190">芯片 / 产品</th><th width="200">参数（大致）</th><th>说明</th></tr>
+<tr><td>TI TPS63020 / TPS63070 一类</td><td>输入约 2~5.5V（63070 更宽），输出 3.3V 等</td><td>单节锂电池（3.0~4.2V）稳定输出 3.3V，电池快没电时仍能保持 3.3V</td></tr>
+<tr><td>LTC3780 类控制器（大功率模块）</td><td>输入 5~32V，外置 4 个 MOS</td><td>淘宝"自动升降压恒压恒流模块"常用，做电池充电、太阳能</td></tr>
+<tr><td>充电宝双向 PD 芯片（如英集芯 IP53xx 系列一类）</td><td>电池 ↔ 5~20V</td><td>同一个四开关电路，放电时把电池升/降到 PD 电压，充电时反过来给电池充电</td></tr>
+<tr><td>运放负电源、LCD 偏压</td><td>+5V → −5V</td><td>反相 Buck-Boost 或电荷泵</td></tr>
+</table>
+<h3>Flyback</h3>
+<p>手机充电器、小家电电源、待机电源、电视/空调里的辅助电源基本都是反激。见 <a href="LD7575学习笔记.html">LD7575</a> 和 <a href="GaN快充学习笔记.html">GaN 快充</a> 两篇。</p>
+
+<!-- ============================================================ -->
+<h2 id="s9">9. 值得了解的知识</h2>
+<h3>9.1 CCM、DCM、BCM</h3>
+<figure>
+<svg viewBox="0 0 1000 230">
+  <g font-size="13" font-weight="bold"><text x="10" y="50" fill="#2980b9">CCM</text><text x="10" y="120" fill="#27ae60">BCM</text><text x="10" y="190" fill="#c0392b">DCM</text></g>
+  <g stroke="#ccc"><line x1="80" y1="70" x2="960" y2="70"/><line x1="80" y1="140" x2="960" y2="140"/><line x1="80" y1="210" x2="960" y2="210"/></g>
+  <polyline points="80,60 160,25 280,60 360,25 480,60 560,25 680,60 760,25 880,60" stroke="#2980b9" stroke-width="2.5" fill="none"/>
+  <polyline points="80,140 160,95 280,140 360,95 480,140 560,95 680,140 760,95 880,140" stroke="#27ae60" stroke-width="2.5" fill="none"/>
+  <polyline points="80,210 130,180 200,210 280,210 330,180 400,210 480,210 530,180 600,210 680,210 730,180 800,210 880,210" stroke="#c0392b" stroke-width="2.5" fill="none"/>
+  <g font-size="12">
+    <text x="890" y="45">电流从不到 0</text><text x="890" y="115">刚好到 0 就开</text><text x="890" y="185">到 0 后停一段</text>
+  </g>
+</svg>
+<figcaption>电感电流的三种状态。重载一般 CCM，轻载会进入 DCM。DCM 时上面那些电压公式不再成立，输出电压会和负载有关，靠环路调回来。</figcaption>
+</figure>
+
+<h3>9.2 轻载模式：PWM、PFM、跳脉冲</h3>
+<p>重载时芯片固定频率 PWM；轻载时为了省电改为 PFM（降频）或 Burst（打一串停一会儿），效率高但纹波变大、频率不固定，可能落到音频范围导致电感啸叫。芯片常有 MODE 引脚可以强制 PWM（FCCM）。给音频、射频供电时选强制 PWM。</p>
+
+<h3>9.3 控制方式</h3>
+<table>
+<tr><th>方式</th><th>原理</th><th>特点</th></tr>
+<tr><td>电压模式</td><td>输出电压误差放大后和锯齿波比较得到占空比</td><td>结构简单，抗噪声好，补偿复杂（LC 双极点）</td></tr>
+<tr><td>峰值电流模式</td><td>电感电流达到误差放大器给的门槛就关断（LD7575 就是这种）</td><td>逐周期限流，补偿简单；D&gt;50% 要斜率补偿</td></tr>
+<tr><td>COT / 恒定导通时间</td><td>输出低于基准就打一个固定宽度的脉冲</td><td>负载跳变响应极快，CPU 供电常用，频率略变</td></tr>
+</table>
+
+<h3>9.4 环路稳定性</h3>
+<ul>
+<li>反馈环路要有足够的<b>相位裕度（一般 ≥ 45°）</b>，否则负载变化时输出振荡。</li>
+<li>环路带宽一般取开关频率的 1/10~1/5（Boost 还要低于 RHP 零点）。</li>
+<li>没有网络分析仪时，最实用的测试是<b>负载阶跃</b>：用电子负载在 10%↔90% 之间跳，看输出电压的过冲和振铃。振荡次数多说明相位裕度不够。</li>
+<li>芯片规格书一般给出推荐的补偿元件（COMP 引脚 RC），先照抄。很多新芯片内部已经补偿好。</li>
+</ul>
+
+<h3>9.5 元件选型</h3>
+<table>
+<tr><th width="140">元件</th><th>要看的参数和坑</th></tr>
+<tr><td>电感</td><td><b>饱和电流 Isat</b>（超过后电感量骤降，电流冲高）＞峰值电流并留余量；<b>温升电流 Irms</b>＞有效值电流；<b>DCR</b>（直流电阻，决定铜损）。屏蔽型电感 EMI 小。功率电感不要用色环电感、磁珠代替</td></tr>
+<tr><td>输出电容</td><td><b>MLCC 直流偏压效应</b>：一颗 10µF/10V 的 0805 电容加 5V 后可能只剩 3~5µF，看厂家的 DC bias 曲线。电解电容 ESR 大、寿命受温度影响</td></tr>
+<tr><td>输入电容</td><td>Buck 的输入电流是脉冲，输入电容承受很大的纹波电流（约 Io/2），要靠近芯片放，MLCC 为主</td></tr>
+<tr><td>二极管（非同步）</td><td>用肖特基，耐压＞Vin（Buck）或 Vo（Boost），电流按平均电流 × 余量</td></tr>
+<tr><td>反馈电阻</td><td>Vo = Vref × (1 + R上/R下)。用 1% 电阻；阻值太大（MΩ）容易受干扰，太小（几百 Ω）浪费电流，一般 10k~100k</td></tr>
+</table>
+
+<h3>9.6 PCB 布局（比计算更重要）</h3>
+<figure>
+<svg viewBox="0 0 1000 270">
+  <g stroke="#333" stroke-width="2" fill="none">
+    <path d="M120,60 H220"/><rect x="220" y="48" width="60" height="24" fill="#fadbd8"/><path d="M280,60 H320 V100"/><rect x="308" y="100" width="24" height="60" fill="#d6eaf8"/><path d="M320,160 V210 H120 V160"/>
+    <path d="M120,60 V100"/><line x1="105" y1="100" x2="135" y2="100"/><line x1="105" y1="110" x2="135" y2="110"/><path d="M120,110 V160"/>
+    <path d="M320,60 H360"/><path d="M360,60 a10,10 0 0,1 20,0 a10,10 0 0,1 20,0 a10,10 0 0,1 20,0"/><path d="M420,60 H470"/>
+  </g>
+  <path d="M135,70 H305 V200 H135 Z" fill="#e74c3c" opacity="0.15" stroke="#e74c3c" stroke-width="2.5" stroke-dasharray="6 4"/>
+  <g font-size="12"><text x="70" y="108">Cin</text><text x="232" y="42">上管</text><text x="338" y="135">下管</text><text x="378" y="44">L</text><text x="150" y="140" fill="#c0392b" font-weight="bold">热回路</text><text x="150" y="158" fill="#c0392b" font-size="11">电流在纳秒内切换</text><text x="150" y="174" fill="#c0392b" font-size="11">面积越小越好</text></g>
+  <g transform="translate(520,20)" font-size="12">
+    <text x="0" y="10" font-size="14" font-weight="bold">Buck 布局要点</text>
+    <text x="0" y="38">① 输入电容 → 上管 → 下管 → 回到输入电容地，</text><text x="0" y="56">  这个"热回路"面积最小，Cin 紧贴芯片 VIN/GND</text>
+    <text x="0" y="84">② SW 节点铜皮够走电流就行，不要太大</text><text x="0" y="102">  （它是 dv/dt 很大的天线）</text>
+    <text x="0" y="130">③ FB 走线远离 SW 和电感，分压电阻靠近芯片</text>
+    <text x="0" y="158">④ 地平面完整，功率地和信号地单点汇合</text>
+    <text x="0" y="186">⑤ 照抄规格书的推荐布局（Layout Example）</text>
+    <text x="0" y="214" fill="#c0392b">Boost 的热回路是：开关管 → 二极管 → 输出电容</text>
+  </g>
+</svg>
+</figure>
+
+<h3>9.7 测纹波的正确方法</h3>
+<ul>
+<li>示波器开 <b>20MHz 带宽限制</b>，AC 耦合，探头 ×1 或 ×10。</li>
+<li><b>去掉探头的长地线夹</b>，用探头附带的接地弹簧，探头尖和弹簧直接顶在输出电容两端。长地线夹会形成环形天线，测到大量开关尖峰，看起来纹波好几百 mV，其实是测法问题。</li>
+<li>纹波（开关频率的三角波）和噪声（开关瞬间的尖峰）要分开看。</li>
+</ul>
+
+<h3>9.8 其他常用知识点</h3>
+<table>
+<tr><th width="160">知识点</th><th>说明</th></tr>
+<tr><td>自举（Bootstrap）</td><td>同步 Buck 上管是高边 NMOS，栅极要比 SW 高约 5V。BOOT 引脚接一个 0.1µF 电容到 SW，下管导通时充电，上管导通时把栅极"抬"上去。这个电容漏焊，芯片会完全不工作</td></tr>
+<tr><td>电荷泵</td><td>只用开关和电容，没有电感。倍压、反相、手机快充里的 2:1 电荷泵（效率 97% 以上，配合 PPS 直充）</td></tr>
+<tr><td>软启动</td><td>上电时让输出慢慢升，避免冲击电流把输入电源拉垮，SS 引脚接电容调时间</td></tr>
+<tr><td>EN、PG、UVLO</td><td>使能、电源正常输出、欠压锁定。多路电源用 PG 串起来做上电顺序</td></tr>
+<tr><td>最小导通时间</td><td>24V → 1V、2MHz 时 D≈4%，导通只有 20ns，可能低于芯片最小导通时间而无法稳压。高降压比要降低频率或两级转换</td></tr>
+<tr><td>效率曲线</td><td>规格书都会给"效率 vs 负载"曲线：轻载看静态电流和轻载模式，重载看导通电阻和电感 DCR</td></tr>
+<tr><td>热设计</td><td>小封装芯片靠 PCB 散热，底部散热焊盘要打过孔连到地平面</td></tr>
+<tr><td>EMI</td><td>输入加 π 型滤波（电容-电感-电容），频率选择避开敏感频段，扩频（展频）功能能降低峰值</td></tr>
+</table>
+
+<!-- ============================================================ -->
+<h2 id="s10">10. 设计流程与工具</h2>
+<ol>
+<li>明确指标：输入范围（最低、典型、最高）、输出电压和电流、纹波要求、效率、体积、成本。</li>
+<li>选拓扑（第 7 节决策图）。</li>
+<li>选芯片：用厂家的选型工具和在线设计工具（TI WEBENCH Power Designer、ADI LTpowerCAD、MPS、矽力杰等），输入指标直接给出原理图和元件值。</li>
+<li>按规格书典型应用电路核算电感、电容（第 3、4 节的公式）。</li>
+<li>LTspice 仿真（ADI 的芯片自带模型，其他厂家很多也提供）：看启动、负载跳变、纹波。</li>
+<li>画 PCB：照抄规格书推荐布局（第 9.6 节）。</li>
+<li>实测：先限流上电 → 测输出电压 → 纹波（第 9.7 节）→ 效率 → 负载阶跃 → 温升 → 短路保护。</li>
+</ol>
+<div class="key"><b>动手练习建议</b>（配合工作间规划里的设备）：<br>
+① 买一块 LM2596 模块和一块 MP1584 模块，同样 12V→5V/1A，对比效率、发热、纹波，用示波器看 SW 点波形和电感电流（串小电阻测）。<br>
+② 用 MT3608 把 3.7V 升到 12V，逐步加负载，观察电池电流比输出电流大多少，以及效率怎么变化。<br>
+③ 自己用立创 EDA 画一块同步 Buck 小板，照规格书布局，嘉立创打样，对比好布局和故意画差的布局的纹波。</div>
+
+<!-- ============================================================ -->
+<h2 id="s11">11. 问答速查</h2>
+<div class="qa"><b class="q">Q：三个基本公式？</b><br>Buck Vo=D·Vin；Boost Vo=Vin/(1−D)；Buck-Boost |Vo|=Vin·D/(1−D)。都由电感伏秒平衡推出。</div>
+<div class="qa"><b class="q">Q：为什么 Buck 输入电流比输出电流小？</b><br>功率守恒：Vin·Iin ≈ Vo·Io/效率。降压就是"电压换电流"。Boost 正好相反，电池电流比输出电流大。</div>
+<div class="qa"><b class="q">Q：同步整流有什么好处？</b><br>用 MOS 代替续流二极管，低压大电流时损耗从几瓦降到零点几瓦。需要死区防直通，上管要自举驱动。</div>
+<div class="qa"><b class="q">Q：Boost 为什么不好做短路保护？</b><br>开关关着时输入经电感和二极管直接连到输出，短路电流没有开关能切断。</div>
+<div class="qa"><b class="q">Q：反激和 Buck-Boost 的关系？</b><br>反激就是把 Buck-Boost 的电感换成变压器，多了隔离和匝比。</div>
+<div class="qa"><b class="q">Q：锂电池供 3.3V 用什么？</b><br>电池 3.0~4.2V 跨过 3.3V：要求不高用 LDO（电池低于约 3.4V 后跟着掉）；要用尽电量用四开关 Buck-Boost。</div>
+<div class="qa"><b class="q">Q：电感选多大？</b><br>先定纹波电流（输出电流的 20~40%），再按公式算 L，最后确认饱和电流大于峰值电流。</div>
+<div class="qa"><b class="q">Q：为什么测出来纹波特别大？</b><br>多半是用了探头的长地线夹。换接地弹簧、开 20MHz 带宽限制再测。</div>
+<div class="qa"><b class="q">Q：轻载时电感吱吱响？</b><br>芯片进入 PFM/Burst，频率掉进音频范围。改强制 PWM 模式，或换屏蔽、灌封电感。</div>
+<div class="qa"><b class="q">Q：MLCC 为什么实际容量不够？</b><br>直流偏压效应：加电压后容量大幅下降，小封装、高容值最明显。选更高耐压或更大封装。</div>
+
+<p class="small" style="margin-top:40px;border-top:1px solid #ddd;padding-top:10px">本笔记中的数值例子用于说明原理，实际设计请以芯片规格书、厂家设计工具和实测为准。</p>
+
+</body>
+</html>

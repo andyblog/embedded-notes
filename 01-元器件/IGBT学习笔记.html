@@ -1,0 +1,820 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>IGBT 学习笔记（对照 MOSFET）</title>
+<style>
+  body { font-family: "Microsoft YaHei", "PingFang SC", sans-serif; max-width: 1100px; margin: 0 auto; padding: 20px 28px 80px; color: #222; line-height: 1.75; background: #fafafa; }
+  h1 { border-bottom: 3px solid #8e44ad; padding-bottom: 8px; }
+  h2 { margin-top: 48px; padding: 6px 12px; background: #4a235a; color: #fff; border-radius: 4px; }
+  h3 { margin-top: 28px; color: #c0392b; border-left: 4px solid #c0392b; padding-left: 8px; }
+  table { border-collapse: collapse; width: 100%; margin: 10px 0; background: #fff; font-size: 14px; }
+  th, td { border: 1px solid #ccc; padding: 5px 8px; text-align: left; vertical-align: top; }
+  th { background: #ecf0f1; }
+  pre { font-family: Consolas, monospace; background: #f0f0f0; border-radius: 3px; padding: 10px 14px; overflow-x: auto; }
+  figure { margin: 16px 0; background: #fff; border: 1px solid #ddd; border-radius: 6px; padding: 10px; }
+  figcaption { text-align: center; color: #666; font-size: 13px; margin-top: 6px; }
+  svg { width: 100%; height: auto; display: block; }
+  svg text { font-family: "Microsoft YaHei", sans-serif; }
+  .key { background: #fff8e1; border-left: 5px solid #f39c12; padding: 8px 14px; margin: 12px 0; }
+  .warn { background: #fdecea; border-left: 5px solid #e74c3c; padding: 8px 14px; margin: 12px 0; }
+  .qa { background: #fff; border: 1px solid #ddd; border-radius: 6px; padding: 8px 14px; margin: 10px 0; }
+  .qa b.q { color: #2980b9; }
+  .ex { background: #fff; border: 2px solid #8e44ad; border-radius: 8px; padding: 4px 16px 10px; margin: 20px 0; }
+  .ex h3 { color: #6c3483; border-left-color: #8e44ad; }
+  nav { background: #fff; border: 1px solid #ddd; border-radius: 6px; padding: 8px 20px; }
+  .small { font-size: 13px; color: #666; }
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute">
+  <defs>
+    <marker id="ak" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#333"/></marker>
+    <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#e74c3c"/></marker>
+    <marker id="ag" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#27ae60"/></marker>
+    <marker id="ab" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#2980b9"/></marker>
+  </defs>
+</svg>
+
+<h1>IGBT 学习笔记<br><span class="small">对照 MOSFET 讲原理、特性、驱动，以及电磁炉、变频器、逆变焊机、电动车、光伏逆变器等实际例子</span></h1>
+
+<nav><b>目录</b>
+<ol>
+  <li><a href="#s1">一句话：IGBT 是什么</a></li>
+  <li><a href="#s2">结构、符号与分类</a></li>
+  <li><a href="#s3">导通特性：固定压降 vs 电阻</a></li>
+  <li><a href="#s3b">输出特性曲线与工作区</a></li>
+  <li><a href="#s4">开关特性：关断拖尾电流</a></li>
+  <li><a href="#s5">MOSFET / IGBT / SiC 怎么选</a></li>
+  <li><a href="#s6">驱动与保护</a></li>
+  <li><a href="#s7">规格书关键参数</a></li>
+  <li><a href="#s7b">封装与引脚</a></li>
+  <li><a href="#s8">示例 1：电磁炉（单管准谐振）</a></li>
+  <li><a href="#s9">示例 2：变频器 / 电机驱动（三相全桥）</a></li>
+  <li><a href="#s10">示例 3：逆变焊机（全桥 + 高频变压器）</a></li>
+  <li><a href="#s11">示例 4：新能源汽车电驱</a></li>
+  <li><a href="#s12">示例 5：光伏逆变器 / UPS（H 桥 SPWM）</a></li>
+  <li><a href="#s13">示例 6：变频空调（IPM 模块）</a></li>
+  <li><a href="#s14">失效方式与万用表检测</a></li>
+  <li><a href="#s14b">常见型号、参数与参考价格</a></li>
+  <li><a href="#s14c">易错点与设计注意事项</a></li>
+  <li><a href="#s15">问答速查</a></li>
+</ol>
+</nav>
+
+<p class="small">配套阅读：<a href="MOS管学习笔记.html">MOS管学习笔记</a>、<a href="三极管学习笔记.html">三极管学习笔记</a>（IGBT 可以看成两者的结合）。</p>
+<div class="warn">说明：文中的典型数值（压降、频率、电流、耐压等）是这类器件和产品的常见量级，用来理解。具体型号以规格书为准。</div>
+
+<!-- ============================================================ -->
+<h2 id="s1">1. 一句话：IGBT 是什么</h2>
+<p><b>IGBT（绝缘栅双极型晶体管）= MOSFET 的栅极 + 三极管（BJT）的大电流能力。</b></p>
+<ul>
+<li>像 MOSFET：栅极是绝缘的，用电压控制，静态几乎不要电流，驱动简单。</li>
+<li>像三极管：导通时有"少数载流子注入"（电导调制），高耐压下导通压降仍然很低，能过很大电流。</li>
+<li>代价：关断时那些注入的载流子要慢慢消失，出现<b>拖尾电流</b>，所以开关比 MOSFET 慢，频率一般在几 kHz ~ 几十 kHz。</li>
+</ul>
+<table>
+<tr><th>对照</th><th>MOSFET</th><th>IGBT</th></tr>
+<tr><td>引脚</td><td>G 栅极、D 漏极、S 源极</td><td>G 栅极、C 集电极、E 发射极</td></tr>
+<tr><td>控制</td><td>电压控制，Vgs 阈值约 2~4V，常用 10~12V 驱动</td><td>电压控制，Vge 阈值约 5~6.5V，常用 +15V 开、−5~−8V 关</td></tr>
+<tr><td>导通时像</td><td>一个电阻 Rds(on)</td><td>一个约 1~2V 的固定压降 + 小电阻</td></tr>
+<tr><td>体二极管</td><td>自带（寄生）</td><td>没有，要另外并联快恢复二极管（很多封装内置）</td></tr>
+<tr><td>反向导通</td><td>可以（同步整流就是利用这点）</td><td>不行，只能单向导通</td></tr>
+<tr><td>擅长</td><td>低压、高频（几十 kHz ~ MHz）</td><td>高压（600V~6500V）、大电流、中低频</td></tr>
+</table>
+
+<!-- ============================================================ -->
+<h2 id="s2">2. 结构、符号与分类：MOS 管多了一层 P+</h2>
+<figure>
+<svg viewBox="0 0 1000 380">
+  <g>
+    <text x="230" y="24" font-size="15" font-weight="bold" text-anchor="middle" fill="#2980b9">N 沟道功率 MOSFET（剖面简化）</text>
+    <rect x="60" y="60" width="340" height="40" fill="#f5b7b1" stroke="#333"/><text x="230" y="85" font-size="12" text-anchor="middle">N+ 源区 / P 体区（沟道在这里形成）</text>
+    <rect x="60" y="100" width="340" height="140" fill="#d6eaf8" stroke="#333"/><text x="230" y="165" font-size="13" text-anchor="middle">N− 漂移区（承受高压，越厚越耐压）</text><text x="230" y="185" font-size="12" text-anchor="middle" fill="#c0392b">高压管这里电阻很大</text>
+    <rect x="60" y="240" width="340" height="40" fill="#aed6f1" stroke="#333"/><text x="200" y="265" font-size="12" text-anchor="middle">N+ 衬底</text>
+    <rect x="60" y="280" width="340" height="14" fill="#7f8c8d"/><text x="230" y="314" font-size="12" text-anchor="middle">漏极 D</text>
+    <rect x="150" y="44" width="160" height="12" fill="#f9e79f" stroke="#333"/><text x="230" y="40" font-size="12" text-anchor="middle">栅极 G（氧化层绝缘）</text>
+    <text x="40" y="78" font-size="12">S</text>
+    <path d="M360,105 V275" stroke="#2980b9" stroke-width="3" stroke-dasharray="6 4" marker-end="url(#ab)"/>
+    <text x="290" y="225" font-size="11" fill="#2980b9">只有电子</text>
+  </g>
+  <g transform="translate(500,0)">
+    <text x="230" y="24" font-size="15" font-weight="bold" text-anchor="middle" fill="#8e44ad">IGBT（剖面简化）</text>
+    <rect x="60" y="60" width="340" height="40" fill="#f5b7b1" stroke="#333"/><text x="230" y="85" font-size="12" text-anchor="middle">N+ / P 体区（和 MOS 一样）</text>
+    <rect x="60" y="100" width="340" height="140" fill="#d6eaf8" stroke="#333"/>
+    <g fill="#e74c3c"><circle cx="110" cy="210" r="5"/><circle cx="150" cy="180" r="5"/><circle cx="190" cy="215" r="5"/><circle cx="280" cy="190" r="5"/><circle cx="330" cy="215" r="5"/><circle cx="360" cy="170" r="5"/><circle cx="120" cy="140" r="5"/><circle cx="300" cy="135" r="5"/></g>
+    <text x="70" y="120" font-size="13">N− 漂移区</text><text x="70" y="160" font-size="11" fill="#c0392b">充满注入的空穴（红点）</text><text x="70" y="176" font-size="11" fill="#c0392b">→ 电阻骤降</text>
+    <rect x="60" y="240" width="340" height="18" fill="#aed6f1" stroke="#333"/><text x="230" y="254" font-size="10" text-anchor="middle">N 缓冲层（场截止层）</text>
+    <rect x="60" y="258" width="340" height="24" fill="#e74c3c" stroke="#333"/><text x="230" y="275" font-size="12" text-anchor="middle" fill="#fff" font-weight="bold">P+ 集电区（多出来的这一层）</text>
+    <rect x="60" y="282" width="340" height="14" fill="#7f8c8d"/><text x="230" y="314" font-size="12" text-anchor="middle">集电极 C</text>
+    <rect x="150" y="44" width="160" height="12" fill="#f9e79f" stroke="#333"/><text x="230" y="40" font-size="12" text-anchor="middle">栅极 G</text>
+    <text x="40" y="78" font-size="12">E</text>
+    <path d="M300,105 V250" stroke="#2980b9" stroke-width="3" stroke-dasharray="6 4" marker-end="url(#ab)"/>
+    <path d="M370,255 V110" stroke="#e74c3c" stroke-width="3" stroke-dasharray="6 4" marker-end="url(#ar)"/>
+    <text x="378" y="200" font-size="11" fill="#e74c3c">空穴</text>
+    <text x="262" y="235" font-size="11" fill="#2980b9">电子</text>
+  </g>
+  <text x="40" y="350" font-size="13">高压 MOSFET 的漂移区又厚又"稀"，电阻大（Rds(on) 大约和耐压的 2.5 次方成正比）。IGBT 底部多一层 P+，导通时把大量空穴注入漂移区，</text>
+  <text x="40" y="370" font-size="13">让它"变成良导体"，这就是<tspan font-weight="bold" fill="#8e44ad">电导调制</tspan>。所以 1200V 的 IGBT 导通压降也只有 2V 左右。</text>
+</svg>
+</figure>
+
+<h3>等效电路与符号</h3>
+<figure>
+<svg viewBox="0 0 1000 280">
+  <g stroke="#333" stroke-width="2" fill="none">
+    <!-- equivalent: MOSFET drives base of PNP -->
+    <path d="M200,40 V80"/><circle cx="200" cy="110" r="30"/>
+    <path d="M190,95 L210,95"/><path d="M200,80 V95"/>
+    <path d="M200,140 V240"/>
+    <path d="M185,110 H120 V160"/>
+    <path d="M120,160 V175"/><line x1="105" y1="175" x2="135" y2="175"/>
+    <path d="M60,195 H100"/><line x1="100" y1="183" x2="100" y2="207"/><line x1="108" y1="180" x2="108" y2="210"/>
+    <path d="M108,185 H120 V175"/><path d="M108,205 H120 V240"/>
+    <path d="M120,240 H200"/><path d="M160,240 V260"/>
+  </g>
+  <text x="210" y="35" font-size="12">C 集电极</text><text x="60" y="190" font-size="12">G</text><text x="170" y="275" font-size="12">E 发射极</text>
+  <text x="240" y="110" font-size="12">PNP 三极管</text><text x="240" y="126" font-size="11" fill="#555">（P+ 层 + N− 漂移区 + P 体区）</text>
+  <text x="20" y="160" font-size="12">N 沟道 MOS</text>
+  <text x="60" y="30" font-size="13" font-weight="bold">等效电路</text>
+  <text x="240" y="200" font-size="12" fill="#555">MOS 导通 → 给 PNP 提供基极电流</text>
+  <text x="240" y="216" font-size="12" fill="#555">→ PNP 导通，承担大部分电流</text>
+
+  <g transform="translate(560,0)">
+    <text x="0" y="30" font-size="13" font-weight="bold">电路符号</text>
+    <g stroke="#333" stroke-width="2" fill="none">
+      <path d="M40,140 H80"/><line x1="80" y1="105" x2="80" y2="175"/>
+      <line x1="92" y1="100" x2="92" y2="180"/>
+      <path d="M92,115 L140,85 V50"/><path d="M92,165 L140,195 V230"/>
+      <path d="M220,60 V230"/>
+    </g>
+    <polygon points="140,195 125,180 120,192" fill="#333"/>
+    <text x="20" y="135" font-size="12">G</text><text x="148" y="55" font-size="12">C</text><text x="148" y="232" font-size="12">E</text>
+    <g stroke="#333" stroke-width="2" fill="none"><path d="M140,70 H220"/><path d="M140,215 H220"/></g>
+    <polygon points="208,160 232,160 220,138" fill="#8e44ad" stroke="#333"/><line x1="208" y1="138" x2="232" y2="138" stroke="#333" stroke-width="2.5"/>
+    <text x="240" y="140" font-size="12">反并联快恢复二极管</text><text x="240" y="156" font-size="11" fill="#555">（大多数 IGBT 封装内置，</text><text x="240" y="172" font-size="11" fill="#555">用来让感性负载电流续流）</text>
+    <text x="20" y="265" font-size="12" fill="#555">箭头在发射极上，形状像三极管，栅极像 MOS</text>
+  </g>
+</svg>
+</figure>
+<div class="key">IGBT 没有 MOSFET 那样的体二极管（结构里那个 PN 结是反的）。驱动电机、线圈这类感性负载时，开关管关断后电流必须有路可走，所以要并联一个反向二极管，叫 FWD（续流二极管）。买 IGBT 时型号里常有区别：带二极管和不带二极管，电磁炉、变频器都要带的。</div>
+
+
+<h3>分类</h3>
+<table>
+<tr><th width="160">按形态</th><th>说明</th><th width="230">常见场合</th></tr>
+<tr><td>单管（不带二极管）</td><td>只有 IGBT 芯片</td><td>PFC、Boost 等不需要反向续流的位置</td></tr>
+<tr><td>单管（带反并联二极管）</td><td>IGBT + 快恢复二极管封在一起，型号常带 D、T、R 等后缀</td><td>焊机、UPS、小变频器</td></tr>
+<tr><td>RC-IGBT（逆导型）</td><td>二极管直接做在同一块芯片里，成本低</td><td>电磁炉（软开关，对二极管要求低）</td></tr>
+<tr><td>功率模块</td><td>多颗芯片 + 二极管 + 绝缘基板，半桥 / 六单元（三相桥）/ PIM（整流+逆变+制动）</td><td>变频器、电动车、光伏、焊机</td></tr>
+<tr><td>IPM 智能功率模块</td><td>模块里再集成驱动和保护</td><td>家电变频（空调、冰箱、洗衣机）</td></tr>
+</table>
+<table>
+<tr><th width="160">按芯片技术</th><th>特点</th></tr>
+<tr><td>PT 穿通型（老）</td><td>压降低但负温度系数，不好并联，拖尾长</td></tr>
+<tr><td>NPT 非穿通型</td><td>正温度系数，耐短路，较厚</td></tr>
+<tr><td>FS 场截止 + 沟槽栅（现在主流）</td><td>加 N 缓冲层，芯片更薄，压降低、拖尾短、正温度系数。英飞凌叫 TRENCHSTOP，各家名称不同</td></tr>
+</table>
+<!-- ============================================================ -->
+<h2 id="s3">3. 导通特性：固定压降 vs 电阻</h2>
+<p>MOSFET 导通时像电阻，损耗 P = I² × Rds(on)，电流翻倍损耗变 4 倍。IGBT 导通时像"一个二极管压降 + 小电阻"，损耗 P ≈ Vce(sat) × I，基本跟电流成正比。</p>
+<figure>
+<svg viewBox="0 0 1000 360">
+  <g>
+    <text x="230" y="22" font-size="14" font-weight="bold" text-anchor="middle">导通压降 vs 电流</text>
+    <line x1="60" y1="300" x2="430" y2="300" stroke="#333" marker-end="url(#ak)"/><line x1="60" y1="300" x2="60" y2="40" stroke="#333" marker-end="url(#ak)"/>
+    <text x="400" y="332" font-size="12">电流 (A)</text><text x="70" y="45" font-size="12">压降 (V)</text>
+    <g font-size="10" fill="#555" text-anchor="middle"><text x="60" y="314">0</text><text x="150" y="314">5</text><text x="240" y="314">10</text><text x="330" y="314">15</text><text x="420" y="314">20</text></g>
+    <g font-size="10" fill="#555" text-anchor="end"><text x="55" y="304">0</text><text x="55" y="244">1</text><text x="55" y="184">2</text><text x="55" y="124">3</text></g>
+    <path d="M60,300 L420,120" stroke="#2980b9" stroke-width="3" fill="none"/>
+    <path d="M60,300 Q75,250 90,242 L420,192" stroke="#8e44ad" stroke-width="3" fill="none"/>
+    <text x="300" y="150" font-size="12" fill="#2980b9">MOSFET：直线（电阻 0.15Ω）</text>
+    <text x="250" y="230" font-size="12" fill="#8e44ad">IGBT：起步约 0.9V，再缓慢上升</text>
+    <text x="100" y="278" font-size="11" fill="#8e44ad">↖ 像二极管的门槛</text>
+  </g>
+  <g transform="translate(500,0)">
+    <text x="230" y="22" font-size="14" font-weight="bold" text-anchor="middle">导通损耗 vs 电流</text>
+    <line x1="60" y1="300" x2="430" y2="300" stroke="#333" marker-end="url(#ak)"/><line x1="60" y1="300" x2="60" y2="40" stroke="#333" marker-end="url(#ak)"/>
+    <text x="400" y="332" font-size="12">电流 (A)</text><text x="70" y="45" font-size="12">损耗 (W)</text>
+    <g font-size="10" fill="#555" text-anchor="middle"><text x="60" y="314">0</text><text x="150" y="314">5</text><text x="240" y="314">10</text><text x="330" y="314">15</text><text x="420" y="314">20</text></g>
+    <g font-size="10" fill="#555" text-anchor="end"><text x="55" y="304">0</text><text x="55" y="244">15</text><text x="55" y="184">30</text><text x="55" y="124">45</text><text x="55" y="64">60</text></g>
+    <polyline points="60,300 105,296 150,285 195,266 240,240 285,206 330,165 375,116 420,60" stroke="#2980b9" stroke-width="3" fill="none"/>
+    <polyline points="60,300 105,290 150,278 195,263 240,246 285,227 330,206 375,182 420,156" stroke="#8e44ad" stroke-width="3" fill="none"/>
+    <circle cx="215" cy="258" r="6" fill="none" stroke="#c0392b" stroke-width="2.5"/>
+    <text x="150" y="245" font-size="11" fill="#c0392b">交点约 8.6A</text>
+    <text x="300" y="90" font-size="12" fill="#2980b9">MOSFET：I²R，60W</text>
+    <text x="300" y="170" font-size="12" fill="#8e44ad">IGBT：36W</text>
+    <text x="70" y="140" font-size="11" fill="#2980b9">8.6A 以下 MOS 更省</text><text x="70" y="156" font-size="11" fill="#8e44ad">8.6A 以上 IGBT 更省</text>
+  </g>
+  <text x="40" y="350" font-size="12" fill="#555">示意：600V 级 MOSFET 按高温 Rds(on) 0.15Ω；IGBT 按 Vce = 0.9V + 0.045Ω×I。电流大时 IGBT 优势明显，电压越高（1200V 以上）差距越大。</text>
+</svg>
+</figure>
+<div class="key"><b>另一个差别：温度系数。</b>MOSFET 的 Rds(on) 随温度升高而变大（正温度系数），多管并联时热的那个电流会自动变少，容易均流。老式 IGBT（穿通型）是负温度系数，不好并联；现在主流的场截止（Field Stop）沟槽型 IGBT 在大电流区也是正温度系数，模块内部几片芯片并联没问题。</div>
+
+<!-- ============================================================ -->
+<h2 id="s3b">4. 输出特性曲线与工作区</h2>
+<figure>
+<svg viewBox="0 0 1000 400">
+  <line x1="80" y1="340" x2="580" y2="340" stroke="#333" marker-end="url(#ak)"/><line x1="80" y1="340" x2="80" y2="30" stroke="#333" marker-end="url(#ak)"/>
+  <text x="540" y="362" font-size="12">Vce (V)</text><text x="30" y="40" font-size="12">Ic (A)</text>
+  <g font-size="10" fill="#555" text-anchor="middle"><text x="80" y="354">0</text><text x="122" y="354">1</text><text x="164" y="354">2</text><text x="206" y="354">3</text><text x="290" y="354">5</text><text x="500" y="354">10</text></g>
+  <rect x="80" y="40" width="70" height="300" fill="#27ae60" opacity="0.10"/>
+  <rect x="150" y="40" width="420" height="300" fill="#e67e22" opacity="0.07"/>
+  <rect x="80" y="328" width="490" height="12" fill="#7f8c8d" opacity="0.25"/>
+  <g fill="none" stroke-width="2.5">
+    <path d="M80,340 L108,338 Q125,300 140,265 Q150,252 170,250 H560" stroke="#f1c40f"/>
+    <path d="M80,340 L108,338 Q128,260 145,190 Q158,168 185,165 H560" stroke="#e67e22"/>
+    <path d="M80,340 L108,338 Q130,220 148,130 Q162,100 200,95 H560" stroke="#c0392b"/>
+    <path d="M80,340 L108,338 Q132,180 150,80 Q165,52 215,48 H560" stroke="#8e44ad"/>
+  </g>
+  <g font-size="12">
+    <text x="565" y="254" fill="#b7950b">Vge=9V</text><text x="565" y="169" fill="#ca6f1e">11V</text><text x="565" y="99" fill="#c0392b">13V</text><text x="565" y="52" fill="#8e44ad">15V</text>
+    <text x="84" y="58" fill="#1e8449" font-weight="bold">饱和区</text><text x="84" y="74" fill="#1e8449" font-size="11">(开关导通)</text>
+    <text x="300" y="210" fill="#a04000" font-weight="bold">放大区 / 有源区</text><text x="300" y="228" fill="#a04000" font-size="11">电流由 Vge 决定，Vce 大，发热大</text>
+    <text x="300" y="325" fill="#555" font-size="11">截止区：Vge &lt; Vth（约 5~6V），只有漏电流</text>
+    <text x="112" y="312" fill="#c0392b" font-size="11">↙ 约 0.7V 才开始导通</text>
+  </g>
+  <g transform="translate(620,0)">
+    <text x="0" y="50" font-size="13" font-weight="bold">怎么读这张图</text>
+    <text x="0" y="78" font-size="12">· 曲线不过原点：Vce 要先超过约 0.7V</text>
+    <text x="0" y="96" font-size="12">  （内部 PNP 的 PN 结）才有电流。MOS 的</text>
+    <text x="0" y="114" font-size="12">  曲线是从原点直线出发的</text>
+    <text x="0" y="142" font-size="12">· 开关应用只用两个点：截止 和 饱和</text>
+    <text x="0" y="160" font-size="12">  （左边陡峭段），快速穿过中间</text>
+    <text x="0" y="188" font-size="12">· Vge 越高，饱和压降越低：15V 是</text>
+    <text x="0" y="206" font-size="12">  规格书的标准条件，12V 就会明显变差</text>
+    <text x="0" y="234" font-size="12" fill="#c0392b">· 注意命名：IGBT 沿用三极管叫法，</text>
+    <text x="0" y="252" font-size="12" fill="#c0392b">  "饱和区"= 完全导通；MOS 的"饱和区"</text>
+    <text x="0" y="270" font-size="12" fill="#c0392b">  却是指平坦的恒流段，两者正好相反</text>
+    <text x="0" y="298" font-size="12">· 短路时工作点被推到右上方的放大区，</text>
+    <text x="0" y="316" font-size="12">  电流被 Vge 限制在额定的几倍，这也是</text>
+    <text x="0" y="334" font-size="12">  DESAT 能检测到短路的原因（第 7 节）</text>
+  </g>
+</svg>
+<figcaption>示意曲线，数值不对应具体型号。</figcaption>
+</figure>
+<table>
+<tr><th>工作区</th><th>条件</th><th>特点</th><th>对应 MOS</th></tr>
+<tr><td>截止区</td><td>Vge &lt; Vge(th)</td><td>C-E 之间只有很小的漏电流，承受全部电压</td><td>截止区</td></tr>
+<tr><td>放大区（有源区）</td><td>Vge &gt; Vth，Vce 较大</td><td>Ic 基本只由 Vge 决定；Vce×Ic 很大，开关管只能短暂经过</td><td>饱和区（恒流区）</td></tr>
+<tr><td>饱和区</td><td>Vge 足够高（15V），Vce 小</td><td>Vce = Vce(sat)，约 1.5~2V，开关导通时工作在这里</td><td>线性区（可变电阻区）</td></tr>
+</table>
+
+<!-- ============================================================ -->
+<h2 id="s4">5. 开关特性：关断拖尾电流</h2>
+<figure>
+<svg viewBox="0 0 1000 380">
+  <g font-size="13" font-weight="bold"><text x="8" y="70">Vge / Vgs</text><text x="8" y="180">电流</text><text x="8" y="290">电压 Vce/Vds</text></g>
+  <path d="M120,90 H150 V50 H500 V90 H950" stroke="#555" stroke-width="2" fill="none"/>
+  <text x="155" y="45" font-size="11">+15V</text><text x="505" y="105" font-size="11">关断信号</text>
+  <line x1="500" y1="30" x2="500" y2="360" stroke="#ccc" stroke-dasharray="3 3"/>
+  <!-- current -->
+  <path d="M120,220 H160 L175,140 H500 L540,220 H950" stroke="#2980b9" stroke-width="2.5" fill="none"/>
+  <path d="M120,220 H165 L180,140 H500 L525,185 Q560,190 620,210 Q680,218 760,220 H950" stroke="#8e44ad" stroke-width="2.5" fill="none"/>
+  <path d="M525,185 Q560,190 620,210 Q680,218 760,220 L540,220 Z" fill="#8e44ad" opacity="0.25"/>
+  <text x="600" y="180" font-size="12" fill="#8e44ad" font-weight="bold">拖尾电流（tail current）</text>
+  <text x="600" y="196" font-size="11" fill="#8e44ad">漂移区里的空穴要慢慢复合消失</text>
+  <text x="545" y="240" font-size="11" fill="#2980b9">MOSFET：几十 ns 内干净关断</text>
+  <!-- voltage -->
+  <path d="M120,260 H160 L175,330 H500 L520,260 H950" stroke="#c0392b" stroke-width="2.5" fill="none"/>
+  <text x="530" y="255" font-size="11" fill="#c0392b">电压已经升到母线电压（如 540V）</text>
+  <text x="380" y="350" font-size="12" fill="#555">高电压 × 拖尾电流 = 额外的关断损耗 Eoff（紫色阴影那段）</text>
+</svg>
+<figcaption>IGBT 关断损耗大，是它不能跑高频的根本原因。开关损耗 = (Eon + Eoff) × f，频率越高损耗越大。</figcaption>
+</figure>
+<table>
+<tr><th>频率区间</th><th>适合</th><th>原因</th></tr>
+<tr><td>&lt; 20kHz</td><td>IGBT 很合适</td><td>开关次数少，导通损耗占主要，IGBT 压降低</td></tr>
+<tr><td>20~50kHz</td><td>高速 IGBT 或软开关（如电磁炉的零电压开通）</td><td>硬开关损耗开始明显，需要软开关或高速型号</td></tr>
+<tr><td>&gt; 50~100kHz</td><td>MOSFET / SiC / GaN</td><td>IGBT 拖尾损耗太大</td></tr>
+</table>
+
+<!-- ============================================================ -->
+<h2 id="s5">6. MOSFET / IGBT / SiC 怎么选</h2>
+<figure>
+<svg viewBox="0 0 1000 420">
+  <line x1="90" y1="360" x2="960" y2="360" stroke="#333" marker-end="url(#ak)"/><line x1="90" y1="360" x2="90" y2="30" stroke="#333" marker-end="url(#ak)"/>
+  <text x="900" y="385" font-size="12">开关频率</text><text x="20" y="40" font-size="12">耐压</text>
+  <g font-size="11" fill="#555" text-anchor="middle"><text x="150" y="378">1kHz</text><text x="330" y="378">10kHz</text><text x="510" y="378">100kHz</text><text x="690" y="378">1MHz</text><text x="870" y="378">10MHz</text></g>
+  <g font-size="11" fill="#555" text-anchor="end"><text x="85" y="345">30V</text><text x="85" y="285">100V</text><text x="85" y="225">650V</text><text x="85" y="165">1200V</text><text x="85" y="105">3300V</text><text x="85" y="55">6500V</text></g>
+  <rect x="110" y="45" width="340" height="200" rx="12" fill="#8e44ad" opacity="0.22" stroke="#8e44ad"/>
+  <text x="200" y="110" font-size="16" font-weight="bold" fill="#6c3483">IGBT</text><text x="200" y="130" font-size="11" fill="#6c3483">高压、大电流、低中频</text>
+  <rect x="150" y="190" width="560" height="160" rx="12" fill="#2980b9" opacity="0.18" stroke="#2980b9"/>
+  <text x="480" y="300" font-size="16" font-weight="bold" fill="#21618c">硅 MOSFET</text><text x="480" y="320" font-size="11" fill="#21618c">低压最强，高频</text>
+  <rect x="330" y="140" width="330" height="110" rx="12" fill="#e67e22" opacity="0.22" stroke="#e67e22"/>
+  <text x="520" y="175" font-size="16" font-weight="bold" fill="#a04000">SiC MOSFET</text><text x="520" y="195" font-size="11" fill="#a04000">650~1700V，高频高效，较贵</text>
+  <rect x="470" y="200" width="380" height="60" rx="12" fill="#27ae60" opacity="0.22" stroke="#27ae60"/>
+  <text x="740" y="235" font-size="15" font-weight="bold" fill="#1e8449">GaN</text><text x="740" y="252" font-size="11" fill="#1e8449">≤650V，超高频</text>
+</svg>
+<figcaption>示意图，区域有重叠。</figcaption>
+</figure>
+<table>
+<tr><th>场景</th><th>常用器件</th><th>理由</th></tr>
+<tr><td>电动车控制器（48~72V 电池）、电池保护板、同步整流</td><td>低压 MOSFET</td><td>低压 MOS 的 Rds(on) 可以做到 1mΩ 级，IGBT 那 1V 压降反而亏</td></tr>
+<tr><td>手机充电器、电脑电源、服务器电源</td><td>MOSFET / GaN / SiC</td><td>频率高（65kHz~MHz），功率中等</td></tr>
+<tr><td>电磁炉、变频器、焊机、UPS、光伏逆变器</td><td>IGBT（600/650/1200V）</td><td>电压高、电流大、频率 20kHz 以内</td></tr>
+<tr><td>电动汽车电驱</td><td>400V 平台多用 IGBT 模块；800V 平台转向 SiC</td><td>SiC 效率更高，续航更长，但贵</td></tr>
+<tr><td>高铁、电网（柔性直流）、风电</td><td>3300~6500V IGBT 大模块</td><td>超高压、几千安电流</td></tr>
+</table>
+
+<!-- ============================================================ -->
+<h2 id="s6">7. 驱动与保护</h2>
+<p>IGBT 驱动和 MOS 驱动原理相同（给栅极电容充放电），但电压更高、保护更讲究，因为它通常工作在几百伏、几百安的场合，出一次事就是炸模块。</p>
+<figure>
+<svg viewBox="0 0 1000 400">
+  <rect x="20" y="60" width="120" height="70" rx="6" fill="#d6eaf8" stroke="#2980b9"/><text x="80" y="90" font-size="13" text-anchor="middle">MCU / DSP</text><text x="80" y="110" font-size="11" text-anchor="middle">PWM 信号 3.3V</text>
+  <rect x="200" y="40" width="250" height="300" rx="8" fill="#fef9e7" stroke="#d4ac0d"/>
+  <text x="210" y="62" font-size="13" font-weight="bold" fill="#9a7d0a">隔离驱动芯片</text>
+  <text x="210" y="80" font-size="11" fill="#555">（光耦型 / 磁隔离 / 电容隔离）</text>
+  <line x1="290" y1="90" x2="290" y2="330" stroke="#e74c3c" stroke-width="2" stroke-dasharray="5 4"/>
+  <text x="215" y="120" font-size="11">输入侧</text><text x="300" y="120" font-size="11">输出侧（浮地）</text>
+  <rect x="300" y="135" width="140" height="40" rx="4" fill="#fff" stroke="#333"/><text x="370" y="160" font-size="12" text-anchor="middle">推挽输出</text>
+  <rect x="300" y="190" width="140" height="40" rx="4" fill="#fff" stroke="#c0392b"/><text x="370" y="208" font-size="11" text-anchor="middle">DESAT 退饱和检测</text><text x="370" y="222" font-size="10" text-anchor="middle">→ 软关断</text>
+  <rect x="300" y="245" width="140" height="35" rx="4" fill="#fff" stroke="#333"/><text x="370" y="267" font-size="11" text-anchor="middle">米勒钳位 / 欠压锁定</text>
+  <rect x="300" y="292" width="140" height="35" rx="4" fill="#fff" stroke="#2980b9"/><text x="370" y="314" font-size="11" text-anchor="middle">故障 FAULT 回传</text>
+  <g stroke="#333" stroke-width="2" fill="none">
+    <path d="M140,95 H200"/>
+    <path d="M440,155 H500"/><rect x="500" y="148" width="40" height="14" fill="#fff"/><path d="M540,155 H600"/>
+    <path d="M600,155 V200"/>
+    <path d="M600,200 H640"/><line x1="640" y1="170" x2="640" y2="230"/><line x1="650" y1="165" x2="650" y2="235"/>
+    <path d="M650,180 L700,150 V90"/><path d="M650,220 L700,250 V300"/>
+    <path d="M700,90 H780"/>
+    <path d="M440,210 H480 V70 H690"/>
+    <path d="M600,200 V240"/><rect x="593" y="240" width="14" height="30" fill="#fff"/><path d="M600,270 V300 H700"/>
+    <path d="M440,315 H470 V380 H130 V130"/>
+  </g>
+  <polygon points="540,62 540,78 556,70" fill="#c0392b"/><line x1="558" y1="62" x2="558" y2="78" stroke="#333" stroke-width="2"/>
+  <polygon points="700,250 686,238 682,248" fill="#333"/>
+  <g font-size="12">
+    <text x="498" y="140">Rg（开/关可分开）</text>
+    <text x="545" y="58" fill="#c0392b">高压二极管</text>
+    <text x="710" y="85">C → 接负载 / 母线</text>
+    <text x="710" y="315">E（驱动输出侧的"地"跟着 E 浮动）</text>
+    <text x="612" y="262" font-size="11">Rge 10k</text>
+    <text x="145" y="372" fill="#2980b9" font-size="11">故障信号回到 MCU，封锁全部 PWM</text>
+    <text x="580" y="190" font-size="11">G</text>
+  </g>
+  <rect x="760" y="130" width="225" height="130" rx="6" fill="#fff" stroke="#999"/>
+  <text x="770" y="150" font-size="12" font-weight="bold">驱动电源（隔离 DC-DC）</text>
+  <text x="770" y="172" font-size="12">+15V：充分导通，压降最低</text>
+  <text x="770" y="192" font-size="12">−5 ~ −8V：可靠关断</text>
+  <text x="770" y="212" font-size="11" fill="#555">负压防止对管开关时 dv/dt</text>
+  <text x="770" y="228" font-size="11" fill="#555">经米勒电容 Cgc 把栅极</text>
+  <text x="770" y="244" font-size="11" fill="#555">抬起来造成误导通</text>
+</svg>
+</figure>
+<table>
+<tr><th>驱动要点</th><th>原因</th></tr>
+<tr><td>+15V 开通（不能太低）</td><td>Vge 不够时 IGBT 工作在线性区，压降大、发热烧管。驱动电源欠压要锁定（UVLO）</td></tr>
+<tr><td>负压关断</td><td>桥臂上下管：一个管子快速开通，另一个管子 C 端电压剧变，通过 Cgc 往栅极灌电流，可能把它误打开 → 直通</td></tr>
+<tr><td>栅极电阻 Rg</td><td>Rg 小：开关快、损耗小，但尖峰和 EMI 大；Rg 大：反之。开通、关断常用不同阻值（二极管分路）</td></tr>
+<tr><td>G-E 并 10k 电阻（+ 稳压管/TVS）</td><td>驱动断线时防止栅极悬空被感应电压打开；限制栅极过压（Vge 最大一般 ±20V）</td></tr>
+<tr><td>死区时间</td><td>桥臂上下管之间 1~3µs（比 MOS 长，因为有拖尾）</td></tr>
+<tr><td>隔离</td><td>上管的 E 在 0V 和母线电压之间跳，驱动必须浮地；小功率可用自举，大功率用隔离电源</td></tr>
+</table>
+
+<h3>短路保护：DESAT 退饱和检测</h3>
+<figure>
+<svg viewBox="0 0 1000 300">
+  <line x1="80" y1="250" x2="560" y2="250" stroke="#333" marker-end="url(#ak)"/><line x1="80" y1="250" x2="80" y2="30" stroke="#333" marker-end="url(#ak)"/>
+  <text x="530" y="270" font-size="12">集电极电流 Ic</text><text x="30" y="40" font-size="12">Vce</text>
+  <path d="M80,250 Q100,215 130,210 L330,195 Q380,190 400,150 Q420,90 440,40" stroke="#8e44ad" stroke-width="3" fill="none"/>
+  <line x1="80" y1="140" x2="560" y2="140" stroke="#e74c3c" stroke-dasharray="5 4"/>
+  <text x="450" y="135" font-size="12" fill="#e74c3c">DESAT 门槛 ≈ 7V</text>
+  <text x="140" y="200" font-size="12" fill="#8e44ad">正常：饱和区，Vce ≈ 1.5~2V</text>
+  <text x="420" y="100" font-size="12" fill="#c0392b">短路：电流冲到 5~10 倍，</text><text x="420" y="116" font-size="12" fill="#c0392b">退出饱和，Vce 飙升</text>
+  <g transform="translate(600,0)">
+    <text x="0" y="40" font-size="13" font-weight="bold">保护过程</text>
+    <text x="0" y="70" font-size="12">① 驱动开通后，经过约 1~3µs 的"消隐"，</text>
+    <text x="0" y="88" font-size="12">  通过高压二极管监测 Vce</text>
+    <text x="0" y="114" font-size="12">② Vce &gt; 7V → 判定短路</text>
+    <text x="0" y="140" font-size="12">③ <tspan fill="#c0392b" font-weight="bold">软关断</tspan>：慢慢降栅压关闭</text>
+    <text x="0" y="158" font-size="12" fill="#555">  （直接硬关断，L·di/dt 尖峰会击穿管子）</text>
+    <text x="0" y="184" font-size="12">④ 回传 FAULT，MCU 封锁所有 PWM</text>
+    <text x="0" y="214" font-size="12" fill="#c0392b">关键：IGBT 的短路耐受时间 tsc 一般只有</text>
+    <text x="0" y="232" font-size="12" fill="#c0392b">约 5~10µs，整个保护必须在这之内完成</text>
+    <text x="0" y="258" font-size="12" fill="#555">（MOSFET、SiC 的短路耐受时间更短）</text>
+  </g>
+</svg>
+</figure>
+
+<!-- ============================================================ -->
+<h2 id="s7">8. 规格书关键参数</h2>
+<table>
+<tr><th width="160">参数</th><th width="200">典型值（1200V/40A 单管）</th><th>怎么理解</th><th width="160">对应 MOSFET 参数</th></tr>
+<tr><td>V<sub>CES</sub></td><td>1200V</td><td>C-E 最大耐压，留 20~30% 余量</td><td>V<sub>DSS</sub></td></tr>
+<tr><td>I<sub>C</sub> @25°C / @100°C</td><td>80A / 40A</td><td>看 100°C 那个值，25°C 的数字是"理想散热"下的，实际用不到</td><td>I<sub>D</sub></td></tr>
+<tr><td>V<sub>CE(sat)</sub></td><td>1.8~2.1V @40A</td><td>导通压降，决定导通损耗 ≈ Vce × I</td><td>R<sub>DS(on)</sub></td></tr>
+<tr><td>V<sub>GE(th)</sub></td><td>5~6.5V</td><td>阈值比 MOS 高，抗干扰好一点，但驱动要 15V</td><td>V<sub>GS(th)</sub></td></tr>
+<tr><td>V<sub>GES</sub></td><td>±20V</td><td>栅极最大电压，超过会击穿氧化层</td><td>V<sub>GS</sub></td></tr>
+<tr><td>Q<sub>G</sub></td><td>约 200nC</td><td>驱动功率 ≈ Qg × ΔVge × f</td><td>Q<sub>G</sub></td></tr>
+<tr><td>E<sub>on</sub> / E<sub>off</sub></td><td>几 mJ（单位是毫焦）</td><td>每开关一次的能量，开关损耗 = (Eon+Eoff) × f。IGBT 规格书用能量表示，MOS 常给时间</td><td>t<sub>r</sub>、t<sub>f</sub></td></tr>
+<tr><td>t<sub>sc</sub></td><td>5~10µs</td><td>短路能扛多久，决定保护要多快</td><td>（通常不标或很短）</td></tr>
+<tr><td>R<sub>th(j-c)</sub></td><td>约 0.3~0.5 K/W</td><td>结到外壳热阻，用来算散热片</td><td>同</td></tr>
+<tr><td>二极管 V<sub>F</sub>、Q<sub>rr</sub></td><td>2V、几 µC</td><td>内置续流二极管的参数，反向恢复也会增加开关损耗</td><td>体二极管参数</td></tr>
+</table>
+<pre>损耗估算例（变频器一个管子，母线 540V，电流 20A，10kHz，占空比 50%）：
+  导通损耗 ≈ Vce(sat) × I × 占空比 = 1.8 × 20 × 0.5 = 18 W
+  开关损耗 ≈ (Eon + Eoff) × f，按 20A 时约 2 mJ 计 → 2mJ × 10kHz = 20 W
+  合计约 38 W → 结温 = 环境 + 损耗 × (Rth j-c + c-h + h-a)，要保证 < 150~175°C</pre>
+
+<!-- ============================================================ -->
+<h2 id="s7b">9. 封装与引脚</h2>
+<p>单管最常见的是 <b>TO-247</b> 和 <b>TO-3P</b>，引脚从左到右（正面朝向自己、引脚朝下）一般是 <b>G、C、E</b>，<b>金属背板是 C 极</b>（带高压），装散热器必须加绝缘垫片和绝缘粒。大电流用模块，螺丝端子接主电流，小插针接驱动。</p>
+<figure>
+<svg viewBox="0 0 1000 360">
+  <g>
+    <text x="120" y="24" font-size="14" font-weight="bold" text-anchor="middle">TO-247 / TO-3P 单管</text>
+    <rect x="60" y="40" width="120" height="160" rx="4" fill="#2c3e50"/>
+    <circle cx="120" cy="70" r="12" fill="#fafafa"/>
+    <text x="120" y="130" font-size="12" fill="#fff" text-anchor="middle">型号</text><text x="120" y="148" font-size="11" fill="#ccc" text-anchor="middle">正面</text>
+    <g stroke="#95a5a6" stroke-width="7"><line x1="85" y1="200" x2="85" y2="290"/><line x1="120" y1="200" x2="120" y2="290"/><line x1="155" y1="200" x2="155" y2="290"/></g>
+    <g font-size="15" font-weight="bold" text-anchor="middle"><text x="85" y="312">G</text><text x="120" y="312" fill="#c0392b">C</text><text x="155" y="312">E</text></g>
+    <text x="20" y="340" font-size="11" fill="#555">背面金属片 = C（高压！）</text>
+  </g>
+  <g transform="translate(260,0)">
+    <text x="190" y="24" font-size="14" font-weight="bold" text-anchor="middle">半桥模块（如 34mm / 62mm）顶视</text>
+    <rect x="20" y="40" width="340" height="170" rx="8" fill="#ecf0f1" stroke="#7f8c8d" stroke-width="2"/>
+    <g fill="#bdc3c7" stroke="#555"><circle cx="80" cy="125" r="22"/><circle cx="190" cy="125" r="22"/><circle cx="300" cy="125" r="22"/></g>
+    <g font-size="12" text-anchor="middle"><text x="80" y="170">DC+ (C1)</text><text x="190" y="170">AC 输出</text><text x="190" y="184" font-size="10">(E1C2)</text><text x="300" y="170">DC− (E2)</text></g>
+    <g fill="#f1c40f" stroke="#555"><rect x="40" y="55" width="10" height="16"/><rect x="58" y="55" width="10" height="16"/><rect x="312" y="55" width="10" height="16"/><rect x="330" y="55" width="10" height="16"/></g>
+    <g font-size="10" text-anchor="middle"><text x="45" y="88">G1</text><text x="63" y="88">E1</text><text x="317" y="88">G2</text><text x="335" y="88">E2</text></g>
+    <text x="20" y="235" font-size="11" fill="#555">粗端子走主电流（螺丝），细插针接驱动。驱动的 E 要单独引线</text>
+    <text x="20" y="251" font-size="11" fill="#555">（辅助发射极），不能和主电流共用一根线，否则 di/dt 感应电压</text>
+    <text x="20" y="267" font-size="11" fill="#555">会叠加到栅极上。底板是绝缘的陶瓷基板（DBC），可直接装散热器。</text>
+  </g>
+  <g transform="translate(660,0)">
+    <text x="160" y="24" font-size="14" font-weight="bold" text-anchor="middle">常见封装一览</text>
+    <g font-size="12">
+      <text x="0" y="55">· TO-220 / TO-220F：小电流单管</text>
+      <text x="0" y="80">· TO-247 / TO-3P：最常见单管</text>
+      <text x="0" y="98" font-size="11" fill="#555">  电磁炉、焊机、UPS</text>
+      <text x="0" y="123">· TO-247-4：多一个开尔文发射极脚</text>
+      <text x="0" y="141" font-size="11" fill="#555">  （驱动回路独立，开关更快）</text>
+      <text x="0" y="166">· D²PAK / TO-263：贴片</text>
+      <text x="0" y="191">· 34mm / 62mm 半桥模块</text>
+      <text x="0" y="216">· EconoPACK / EconoDUAL：变频器</text>
+      <text x="0" y="241">· HybridPACK 类：电动车（液冷）</text>
+      <text x="0" y="266">· SPM / DIP-IPM：家电 IPM</text>
+      <text x="0" y="300" fill="#c0392b">引脚以规格书为准，不同厂家可能不同</text>
+    </g>
+  </g>
+</svg>
+</figure>
+
+<!-- ============================================================ -->
+<div class="ex">
+<h2 id="s8">10. 示例 1：电磁炉（单管准谐振）</h2>
+<p>家用电磁炉 2000W 左右，几乎都用<b>一个 1200V~1350V / 15~25A 的 IGBT（内置二极管）</b>，工作频率约 20~30kHz。电路非常经典：</p>
+<figure>
+<svg viewBox="0 0 1000 400">
+  <g stroke="#333" stroke-width="2" fill="none">
+    <circle cx="40" cy="200" r="18"/><path d="M40,182 V80 H80"/><path d="M40,218 V320 H80"/>
+    <rect x="80" y="70" width="60" height="260"/>
+    <path d="M140,90 H170"/><path d="M170,90 a10,10 0 0,1 20,0 a10,10 0 0,1 20,0 a10,10 0 0,1 20,0"/><path d="M230,90 H460"/>
+    <path d="M140,310 H700"/>
+    <path d="M300,90 V190"/><line x1="285" y1="190" x2="315" y2="190"/><line x1="285" y1="200" x2="315" y2="200"/><path d="M300,200 V310"/>
+    <path d="M460,90 V110"/>
+    <path d="M460,110 a12,12 0 0,1 0,24 a12,12 0 0,1 0,24 a12,12 0 0,1 0,24 a12,12 0 0,1 0,24 V200"/>
+    <path d="M460,100 H560 V140"/><line x1="545" y1="140" x2="575" y2="140"/><line x1="545" y1="150" x2="575" y2="150"/><path d="M560,150 V200 H460"/>
+    <path d="M460,200 V220"/>
+    <path d="M400,250 H420"/><line x1="420" y1="230" x2="420" y2="270"/><line x1="428" y1="226" x2="428" y2="274"/>
+    <path d="M428,236 L460,220"/><path d="M428,264 L460,280 V310"/>
+    <path d="M460,220 H500 V238"/><path d="M500,262 V280 H460"/>
+  </g>
+  <polygon points="490,262 510,262 500,240" fill="#8e44ad" stroke="#333"/><line x1="490" y1="240" x2="510" y2="240" stroke="#333" stroke-width="2"/>
+  <polygon points="460,280 448,270 445,278" fill="#333"/>
+  <rect x="380" y="225" width="0" height="0"/>
+  <g font-size="12">
+    <text x="15" y="205">220V</text><text x="110" y="205" text-anchor="middle">整流桥</text>
+    <text x="175" y="75">扼流圈</text>
+    <text x="320" y="190">C 约 5µF</text><text x="320" y="206" font-size="11" fill="#c0392b">（不是大电解！）</text>
+    <text x="330" y="130" font-size="11" fill="#555">母线：100Hz 脉动 0~310V</text>
+    <text x="380" y="150">线盘 L</text><text x="380" y="166" font-size="11">约 100~140µH</text>
+    <text x="582" y="140">谐振电容</text><text x="582" y="156" font-size="11">约 0.3µF/1200V</text>
+    <text x="510" y="235" font-size="11">内置二极管</text>
+    <text x="355" y="255">驱动</text>
+    <text x="470" y="300">IGBT</text>
+  </g>
+  <rect x="720" y="40" width="270" height="290" rx="8" fill="#fff" stroke="#999"/>
+  <text x="730" y="62" font-size="13" font-weight="bold">控制部分（简化）</text>
+  <text x="730" y="85" font-size="12">· 单片机：功率档位、锅具检测</text>
+  <text x="730" y="107" font-size="12">· LM339 比较器：检测 C 端电压</text>
+  <text x="730" y="125" font-size="12">  回落到 0 的时刻（同步）</text>
+  <text x="730" y="147" font-size="12">· 驱动：图腾柱，约 18V</text>
+  <text x="730" y="169" font-size="12">· 浪涌检测：电网有尖峰时暂停</text>
+  <text x="730" y="191" font-size="12">· IGBT 温度、线盘温度（NTC）</text>
+  <text x="730" y="213" font-size="12">· 电流互感器测输入电流 → 恒功率</text>
+  <text x="730" y="243" font-size="12" fill="#8e44ad">功率调节：改变 IGBT 导通时间</text>
+  <text x="730" y="261" font-size="12" fill="#8e44ad">导通越久，线盘电流越大，功率越大</text>
+  <text x="730" y="291" font-size="12" fill="#555">锅具：铁锅里感应出涡流发热；</text>
+  <text x="730" y="309" font-size="12" fill="#555">铝、铜锅电阻太小，加热不了</text>
+</svg>
+<figcaption>线盘 L 和谐振电容 C 并联，IGBT 接在下面。母线电容很小，所以输入电流跟着电网正弦变化，功率因数高。</figcaption>
+</figure>
+
+<h3>一个周期怎么工作</h3>
+<figure>
+<svg viewBox="0 0 1000 340">
+  <g font-size="13" font-weight="bold"><text x="8" y="70">IGBT 栅极</text><text x="8" y="180">线盘电流</text><text x="8" y="285">Vce</text></g>
+  <path d="M110,85 H130 V55 H330 V85 H560 V55 H760 V85 H960" stroke="#555" stroke-width="2" fill="none"/>
+  <line x1="110" y1="180" x2="960" y2="180" stroke="#ccc" stroke-dasharray="3 3"/>
+  <path d="M130,200 L330,130 Q400,140 445,180 Q490,225 540,220 L560,200 L760,130 Q830,140 875,180 Q920,225 960,215" stroke="#2980b9" stroke-width="2.5" fill="none"/>
+  <path d="M110,310 H330 Q445,110 545,310 H760 Q875,110 960,290" stroke="#c0392b" stroke-width="2.5" fill="none"/>
+  <line x1="110" y1="310" x2="960" y2="310" stroke="#ccc"/>
+  <line x1="545" y1="40" x2="545" y2="330" stroke="#27ae60" stroke-dasharray="4 3"/>
+  <g font-size="11">
+    <text x="140" y="50" fill="#555">① 导通：310V 加在线盘上</text>
+    <text x="150" y="150" fill="#2980b9">电流线性上升，储能</text>
+    <text x="340" y="50" fill="#555">② 关断：L 和 C 开始谐振</text>
+    <text x="405" y="230" fill="#c0392b">Vce 冲到约</text><text x="405" y="246" fill="#c0392b">1000~1100V</text>
+    <text x="550" y="40" fill="#27ae60">③ Vce 回到 0，二极管先导通</text>
+    <text x="550" y="300" fill="#27ae60">此时再开通 → 零电压开通（ZVS）</text>
+    <text x="140" y="330" fill="#555">0V</text>
+  </g>
+</svg>
+<figcaption>关断后 L、C 谐振半个周期，Vce 先冲高再自然回到 0，这时开通几乎没有开通损耗。这就是"准谐振"软开关，所以 IGBT 能跑到 20~30kHz。</figcaption>
+</figure>
+<div class="key"><b>为什么要 1200V 以上的管子：</b>谐振时 Vce 峰值约为母线峰值的 3 倍多（310V × 3~3.5 ≈ 1000~1100V），电网有波动时还更高，所以选 1200~1350V。电磁炉常见的炸管原因：电网浪涌、锅具突然拿开导致谐振失步（没在 Vce=0 时开通，硬开通了 1000V）、散热风扇坏了、驱动电压偏低。
+<br>常见型号（参考）：FGA25N120、IHW20N135R5、H20R1203 等，都是带反向二极管的 TO-247 单管。</div>
+</div>
+
+<!-- ============================================================ -->
+<div class="ex">
+<h2 id="s9">11. 示例 2：变频器 / 电机驱动（三相全桥）</h2>
+<p>工厂里的变频器（控制三相异步电机、水泵、风机、传送带）是 IGBT 用量最大的地方。核心是 <b>6 个 IGBT 组成的三相逆变桥</b>，通常做成一个模块。</p>
+<figure>
+<svg viewBox="0 0 1000 420">
+  <g stroke="#333" stroke-width="2" fill="none">
+    <circle cx="35" cy="210" r="18"/>
+    <rect x="70" y="80" width="80" height="260"/>
+    <path d="M150,90 H860"/><path d="M150,330 H860"/>
+    <path d="M200,90 V185"/><line x1="183" y1="185" x2="217" y2="185"/><path d="M183,197 Q200,189 217,197"/><path d="M200,194 V330"/>
+    <path d="M250,90 V140"/><rect x="243" y="140" width="14" height="40"/><path d="M250,180 V200"/><rect x="236" y="200" width="28" height="35" fill="#f5b7b1"/><path d="M250,235 V330"/>
+  </g>
+  <g id="leg">
+    <g stroke="#333" stroke-width="2" fill="none">
+      <path d="M380,90 V110"/><rect x="360" y="110" width="40" height="55" fill="#ebdef0"/><path d="M380,165 V255"/>
+      <rect x="360" y="255" width="40" height="55" fill="#ebdef0"/><path d="M380,310 V330"/>
+    </g>
+  </g>
+  <g stroke="#333" stroke-width="2" fill="none">
+    <path d="M530,90 V110"/><rect x="510" y="110" width="40" height="55" fill="#ebdef0"/><path d="M530,165 V255"/>
+    <rect x="510" y="255" width="40" height="55" fill="#ebdef0"/><path d="M530,310 V330"/>
+    <path d="M680,90 V110"/><rect x="660" y="110" width="40" height="55" fill="#ebdef0"/><path d="M680,165 V255"/>
+    <rect x="660" y="255" width="40" height="55" fill="#ebdef0"/><path d="M680,310 V330"/>
+  </g>
+  <path d="M380,210 H522 a8,8 0 0,1 16,0 H672 a8,8 0 0,1 16,0 H896" stroke="#c0392b" stroke-width="2" fill="none"/>
+  <path d="M530,190 H672 a8,8 0 0,1 16,0 H898" stroke="#27ae60" stroke-width="2" fill="none"/>
+  <path d="M680,230 H898" stroke="#2980b9" stroke-width="2" fill="none"/>
+  <circle cx="940" cy="210" r="45" fill="#fff" stroke="#333" stroke-width="2"/><text x="940" y="215" font-size="15" text-anchor="middle" font-weight="bold">M</text><text x="940" y="275" font-size="11" text-anchor="middle">三相电机</text>
+  <g font-size="12">
+    <text x="15" y="245">380V</text><text x="12" y="260">三相</text>
+    <text x="110" y="205" text-anchor="middle">整流</text>
+    <text x="160" y="80">+540V</text><text x="160" y="350">0V</text>
+    <text x="196" y="260" font-size="10" text-anchor="end">母线电容</text><text x="196" y="274" font-size="10" text-anchor="end">(大电解)</text>
+    <text x="268" y="225" font-size="11">制动</text><text x="268" y="160" font-size="11">制动电阻</text>
+    <text x="368" y="142" font-size="11">U+</text><text x="368" y="287" font-size="11">U−</text>
+    <text x="518" y="142" font-size="11">V+</text><text x="518" y="287" font-size="11">V−</text>
+    <text x="668" y="142" font-size="11">W+</text><text x="668" y="287" font-size="11">W−</text>
+    <text x="760" y="205" fill="#c0392b">U</text><text x="760" y="185" fill="#27ae60">V</text><text x="760" y="245" fill="#2980b9">W</text>
+    <text x="360" y="380" fill="#555">每个方块 = IGBT + 反并联二极管；上下管之间有 2~3µs 死区</text>
+    <text x="360" y="400" fill="#555">380V 输入用 1200V 模块；220V 单相输入（母线 310V）用 600/650V 模块</text>
+  </g>
+</svg>
+</figure>
+<h3>怎么变出可调频率的交流电：SPWM</h3>
+<figure>
+<svg viewBox="0 0 1000 320">
+  <line x1="60" y1="110" x2="960" y2="110" stroke="#ccc"/>
+  <polyline points="60,110 90,30 120,190 150,30 180,190 210,30 240,190 270,30 300,190 330,30 360,190 390,30 420,190 450,30 480,190 510,30 540,190 570,30 600,190 630,30 660,190 690,30 720,190 750,30 780,190 810,30 840,190 870,30 900,190 930,30 960,110" stroke="#bbb" stroke-width="1.2" fill="none"/>
+  <path d="M60,110 C180,0 330,0 510,110 S840,220 960,110" stroke="#c0392b" stroke-width="2.5" fill="none"/>
+  <text x="70" y="22" font-size="12" fill="#c0392b">正弦调制波（想要的频率，如 50Hz）</text>
+  <text x="700" y="22" font-size="12" fill="#888">三角载波（如 8kHz）</text>
+  <path d="M60,270 H75 V230 H120 V270 H125 V230 H170 V270 H172 V230 H222 V270 H225 V230 H270 V270 H278 V230 H315 V270 H330 V230 H360 V270 H382 V230 H405 V270 H435 V230 H448 V270 H490 V230 H495 V270 H960" stroke="#8e44ad" stroke-width="2" fill="none"/>
+  <path d="M510,270 H530 V300 H545 V270 H560 V300 H600 V270 H612 V300 H660 V270 H665 V300 H720 V270 H722 V300 H770 V270 H775 V300 H820 V270 H830 V300 H870 V270 H885 V300 H915 V270 H935 V300 H950 V270" stroke="#8e44ad" stroke-width="2" fill="none" opacity="0.6"/>
+  <path d="M60,250 C180,215 330,215 510,265 S840,305 960,265" stroke="#e67e22" stroke-width="2.5" fill="none" stroke-dasharray="6 3"/>
+  <text x="70" y="220" font-size="12" fill="#8e44ad">IGBT 开关得到的脉冲（宽度跟着正弦变）</text>
+  <text x="620" y="245" font-size="12" fill="#e67e22">电机电感滤波后：近似正弦电流</text>
+</svg>
+<figcaption>示意。正弦值大的地方脉冲宽，小的地方脉冲窄。改调制波的频率就改了电机转速，改幅度就改电压（变频器保持 V/f 比例，就是"变压变频"）。</figcaption>
+</figure>
+<div class="key">
+· <b>载波频率</b>一般 2~16kHz：太低电机有刺耳的"滋滋"声，太高 IGBT 开关损耗大。很多变频器参数里能设"载波频率"，调高电机安静但要降额。<br>
+· <b>制动单元</b>：电机减速时变成发电机，能量回灌到母线，电压会冲高。用一个 IGBT 接制动电阻，母线超过约 700V 时打开放电。<br>
+· <b>省电原理</b>：风机水泵的功率和转速的三次方成正比，转速降 20% 功率约降一半，这是变频改造省电的原因。<br>
+· 同样的三相全桥结构也用在：伺服驱动器、电梯、空调压缩机、电动汽车电驱。
+</div>
+</div>
+
+<!-- ============================================================ -->
+<div class="ex">
+<h2 id="s10">12. 示例 3：逆变焊机（全桥 + 高频变压器）</h2>
+<p>老式电焊机是一个几十公斤的 50Hz 工频大变压器。逆变焊机先把电网整流成直流，再用 IGBT 逆变成 <b>20~40kHz</b> 的高频交流，用小小的高频变压器降压，体积重量只有工频焊机的几分之一。</p>
+<figure>
+<svg viewBox="0 0 1000 300">
+  <g font-size="13" text-anchor="middle">
+    <rect x="10" y="100" width="100" height="70" rx="6" fill="#d6eaf8" stroke="#2980b9"/><text x="60" y="130">220V</text><text x="60" y="150" font-size="11">或 380V</text>
+    <rect x="130" y="100" width="120" height="70" rx="6" fill="#e8daef" stroke="#8e44ad"/><text x="190" y="130">整流 + 滤波</text><text x="190" y="150" font-size="11">310V / 540V 直流</text>
+    <rect x="270" y="90" width="160" height="90" rx="6" fill="#ebdef0" stroke="#6c3483" stroke-width="2"/><text x="350" y="120" font-weight="bold">IGBT 全桥</text><text x="350" y="140" font-size="11">4 管（或半桥 2 管）</text><text x="350" y="158" font-size="11">20~40kHz</text>
+    <rect x="450" y="100" width="120" height="70" rx="6" fill="#d1f2eb" stroke="#16a085"/><text x="510" y="130">高频变压器</text><text x="510" y="150" font-size="11">降压，隔离</text>
+    <rect x="590" y="100" width="130" height="70" rx="6" fill="#d5f5e3" stroke="#27ae60"/><text x="655" y="122">快恢复二极管</text><text x="655" y="140" font-size="11">整流</text><text x="655" y="156" font-size="11">+ 输出电感</text>
+    <rect x="740" y="100" width="120" height="70" rx="6" fill="#fadbd8" stroke="#c0392b"/><text x="800" y="130">焊钳 / 工件</text><text x="800" y="150" font-size="11">空载约 60~70V</text>
+    <rect x="270" y="215" width="160" height="60" rx="6" fill="#fdebd0" stroke="#e67e22"/><text x="350" y="240">PWM 控制</text><text x="350" y="258" font-size="11">如 SG3525 / MCU</text>
+    <rect x="590" y="215" width="270" height="60" rx="6" fill="#ebdef0" stroke="#8e44ad"/><text x="725" y="240">电流采样（霍尔 / 分流器）</text><text x="725" y="258" font-size="11">恒流控制：电流旋钮设定焊接电流</text>
+  </g>
+  <g stroke="#333" stroke-width="1.6" fill="none">
+    <line x1="110" y1="135" x2="128" y2="135" marker-end="url(#ak)"/><line x1="250" y1="135" x2="268" y2="135" marker-end="url(#ak)"/>
+    <line x1="430" y1="135" x2="448" y2="135" marker-end="url(#ak)"/><line x1="570" y1="135" x2="588" y2="135" marker-end="url(#ak)"/>
+    <line x1="720" y1="135" x2="738" y2="135" marker-end="url(#ak)"/>
+    <line x1="590" y1="245" x2="432" y2="245" marker-end="url(#ak)"/><line x1="350" y1="215" x2="350" y2="182" marker-end="url(#ak)"/>
+    <path d="M800,170 V213" marker-end="url(#ak)"/>
+  </g>
+  <text x="10" y="40" font-size="13">拓扑和第三份笔记的 350W 电源几乎一样（半桥/全桥 → 变压器 → 整流 → 电感），只是输出变成"低压大电流 + 恒流"：</text>
+  <text x="10" y="62" font-size="13">ZX7-200 这类焊机：输出约 20~30V、200A，功率几 kW。</text>
+</svg>
+</figure>
+<table>
+<tr><th>细节</th><th>说明</th></tr>
+<tr><td>为什么是恒流</td><td>电弧电压随弧长变化，焊工手一抖弧长就变。恒流控制让电流稳定，焊缝质量稳定</td></tr>
+<tr><td>引弧、推力、防粘条</td><td>都是控制算法：起弧瞬间电流加大；电弧电压太低（快粘住）时加大电流；焊条粘住时自动降电流</td></tr>
+<tr><td>MOS 管焊机 vs IGBT 焊机</td><td>小电流家用焊机常用多个 MOS 管并联（频率高，便宜）；大电流、380V、工业机型多用 IGBT 单管或模块，更耐冲击</td></tr>
+<tr><td>常见坏点</td><td>IGBT 炸（灰尘受潮、过热、驱动问题）、整流快恢复管坏、风扇不转</td></tr>
+</table>
+</div>
+
+<!-- ============================================================ -->
+<div class="ex">
+<h2 id="s11">13. 示例 4：新能源汽车电驱</h2>
+<figure>
+<svg viewBox="0 0 1000 300">
+  <g font-size="13" text-anchor="middle">
+    <rect x="10" y="90" width="140" height="90" rx="8" fill="#d5f5e3" stroke="#27ae60"/><text x="80" y="122" font-weight="bold">动力电池</text><text x="80" y="142" font-size="11">400V（300~450V）</text><text x="80" y="158" font-size="11">或 800V 平台</text>
+    <rect x="190" y="90" width="110" height="90" rx="8" fill="#d6eaf8" stroke="#2980b9"/><text x="245" y="122">母线电容</text><text x="245" y="142" font-size="11">薄膜电容</text><text x="245" y="158" font-size="11">几百 µF</text>
+    <rect x="340" y="70" width="210" height="130" rx="8" fill="#ebdef0" stroke="#6c3483" stroke-width="2"/><text x="445" y="100" font-weight="bold">电机控制器（逆变器）</text><text x="445" y="122" font-size="11">三相全桥 IGBT 模块</text><text x="445" y="140" font-size="11">750V / 400~800A 级</text><text x="445" y="158" font-size="11">载波约 8~10kHz</text><text x="445" y="176" font-size="11">液冷散热（Pin-Fin 底板）</text>
+    <rect x="590" y="90" width="150" height="90" rx="8" fill="#fdebd0" stroke="#e67e22"/><text x="665" y="122" font-weight="bold">驱动电机</text><text x="665" y="142" font-size="11">永磁同步电机</text><text x="665" y="158" font-size="11">100~200kW</text>
+    <rect x="780" y="90" width="190" height="90" rx="8" fill="#eaeded" stroke="#555"/><text x="875" y="122">减速器 → 车轮</text>
+    <rect x="340" y="225" width="210" height="55" rx="8" fill="#fef9e7" stroke="#d4ac0d"/><text x="445" y="248">MCU + 隔离驱动</text><text x="445" y="266" font-size="11">磁场定向控制（FOC），带 DESAT</text>
+  </g>
+  <g stroke="#333" stroke-width="2" fill="none">
+    <line x1="150" y1="135" x2="188" y2="135" marker-end="url(#ak)"/><line x1="300" y1="135" x2="338" y2="135" marker-end="url(#ak)"/>
+    <line x1="550" y1="135" x2="588" y2="135" marker-end="url(#ak)"/><line x1="740" y1="135" x2="778" y2="135" marker-end="url(#ak)"/>
+    <line x1="445" y1="225" x2="445" y2="202" marker-end="url(#ak)"/>
+  </g>
+  <path d="M600,180 V195 H555" stroke="#27ae60" stroke-width="2.5" fill="none" marker-end="url(#ag)"/><path d="M338,195 H80 V183" stroke="#27ae60" stroke-width="2.5" stroke-dasharray="6 3" fill="none" marker-end="url(#ag)"/>
+  <text x="20" y="215" font-size="12" fill="#27ae60">刹车 / 松油门：电机发电，经 IGBT 的二极管和控制回到电池（能量回收）</text>
+  <text x="10" y="40" font-size="13">原理就是示例 2（第 11 节）的三相全桥，只是母线换成电池，功率大 10 倍以上，电流几百安，可靠性要求（车规 AEC-Q101、温度循环）高得多。</text>
+</svg>
+</figure>
+<table>
+<tr><th>平台</th><th>主流器件</th><th>说明</th></tr>
+<tr><td>400V</td><td>750V IGBT 模块（如 HybridPACK 封装类）</td><td>技术成熟、成本低，大量车型在用</td></tr>
+<tr><td>800V</td><td>1200V SiC MOSFET 模块</td><td>SiC 开关损耗低，部分负载效率高，续航可提升几个百分点；支持更快的超充。IGBT 在 800V 下也能用（1200V 级），但效率不如 SiC</td></tr>
+</table>
+<p>电动车上用到功率器件的地方还有：车载充电机 OBC（多用 MOSFET/SiC，频率高）、DC-DC（高压转 12V，MOSFET）、空调压缩机控制器（IGBT 或 MOS 的小三相桥）。对比：两轮电动车控制器电池只有 48~72V，用的是低压 MOSFET。</p>
+</div>
+
+<!-- ============================================================ -->
+<div class="ex">
+<h2 id="s12">14. 示例 5：光伏逆变器 / UPS（H 桥 SPWM）</h2>
+<figure>
+<svg viewBox="0 0 1000 380">
+  <g stroke="#333" stroke-width="2" fill="none">
+    <path d="M40,60 H340"/><path d="M40,320 H340"/>
+    <rect x="20" y="130" width="40" height="120" fill="#d5f5e3"/>
+    <path d="M100,60 V170"/><line x1="83" y1="170" x2="117" y2="170"/><path d="M83,182 Q100,174 117,182"/><path d="M100,179 V320"/>
+    <path d="M200,60 V80"/><rect x="180" y="80" width="40" height="55" fill="#ebdef0"/><path d="M200,135 V245"/><rect x="180" y="245" width="40" height="55" fill="#ebdef0"/><path d="M200,300 V320"/>
+    <path d="M320,60 V80"/><rect x="300" y="80" width="40" height="55" fill="#ebdef0"/><path d="M320,135 V245"/><rect x="300" y="245" width="40" height="55" fill="#ebdef0"/><path d="M320,300 V320"/>
+    <path d="M200,190 H230 V150 H250"/>
+    <path d="M250,150 a10,10 0 0,1 20,0 a10,10 0 0,1 20,0 a10,10 0 0,1 20,0"/>
+    <path d="M310,150 H420"/>
+    <path d="M320,190 H360 V230 H420"/>
+    <path d="M400,150 V180"/><line x1="385" y1="180" x2="415" y2="180"/><line x1="385" y1="190" x2="415" y2="190"/><path d="M400,190 V230"/>
+  </g>
+  <g font-size="12">
+    <text x="10" y="125" font-size="11">直流源</text><text x="62" y="300" font-size="11" fill="#555">光伏升压后</text><text x="62" y="314" font-size="11" fill="#555">或电池</text>
+    <text x="110" y="55">约 380~400V</text>
+    <text x="188" y="112" font-size="11">Q1</text><text x="188" y="277" font-size="11">Q2</text><text x="308" y="112" font-size="11">Q3</text><text x="308" y="277" font-size="11">Q4</text>
+    <text x="250" y="135">滤波 L</text><text x="370" y="210">C</text>
+    <text x="425" y="155">L</text><text x="425" y="235">N</text>
+    <text x="20" y="355" fill="#555">Q1+Q4 导通 → 输出正；Q2+Q3 导通 → 输出负。用 SPWM（约 16~20kHz）调制，</text>
+    <text x="20" y="372" fill="#555">经 LC 滤掉开关频率，得到 50Hz 220V 正弦交流电。</text>
+  </g>
+  <g transform="translate(480,0)">
+    <line x1="20" y1="170" x2="500" y2="170" stroke="#ccc"/>
+    <path d="M20,170 H30 V90 H38 V170 H48 V80 H62 V170 H70 V70 H88 V170 H94 V65 H114 V170 H120 V65 H140 V170 H146 V70 H164 V170 H172 V80 H186 V170 H196 V90 H204 V170 H260 V250 H268 V170 H278 V260 H292 V170 H300 V270 H318 V170 H324 V275 H344 V170 H350 V275 H370 V170 H376 V270 H394 V170 H402 V260 H416 V170 H426 V250 H434 V170 H500" stroke="#8e44ad" stroke-width="1.5" fill="none"/>
+    <path d="M20,170 C70,40 160,40 230,170 S400,300 470,170" stroke="#c0392b" stroke-width="3" fill="none"/>
+    <text x="20" y="30" font-size="12" fill="#8e44ad">紫：H 桥输出的脉冲（±400V）</text>
+    <text x="20" y="48" font-size="12" fill="#c0392b">红：LC 滤波后的 50Hz 正弦（峰值 311V）</text>
+    <text x="20" y="310" font-size="12" fill="#555">示意，实际载波比这密得多（一个 50Hz 周期里约 400 个脉冲）</text>
+  </g>
+</svg>
+</figure>
+<table>
+<tr><th>产品</th><th>结构</th><th>IGBT 的角色</th></tr>
+<tr><td>光伏组串逆变器</td><td>光伏板 → Boost 升压（MPPT 跟踪最大功率点）→ H 桥/三相桥逆变 → 并网</td><td>Boost 开关管和逆变桥。大功率常用 <b>三电平 NPC/ANPC</b> 拓扑，每个管子只承受一半母线电压，可用 650V 器件做 1000~1500V 系统</td></tr>
+<tr><td>在线式 UPS</td><td>市电 → 整流/PFC → 母线 + 电池 → 逆变 → 负载</td><td>PFC 和逆变器，市电断了电池接着供，零切换</td></tr>
+<tr><td>户用储能 / 便携电源</td><td>电池 → 双向 DC-DC → 逆变</td><td>小功率多用 MOSFET，几 kW 以上常用 IGBT</td></tr>
+</table>
+</div>
+
+<!-- ============================================================ -->
+<div class="ex">
+<h2 id="s13">15. 示例 6：变频空调（IPM 模块）</h2>
+<p>变频空调、变频冰箱、变频洗衣机的压缩机/电机驱动，用的是 <b>IPM（智能功率模块）</b>：把 6 个 IGBT（或 MOS）、续流二极管、驱动电路、自举二极管、过流/过温/欠压保护全部封装在一个模块里。</p>
+<figure>
+<svg viewBox="0 0 1000 260">
+  <rect x="250" y="30" width="480" height="200" rx="10" fill="#f4ecf7" stroke="#6c3483" stroke-width="2"/>
+  <text x="260" y="52" font-size="14" font-weight="bold" fill="#6c3483">IPM 内部</text>
+  <g font-size="12" text-anchor="middle">
+    <rect x="270" y="70" width="140" height="60" rx="5" fill="#fff" stroke="#333"/><text x="340" y="96">高压侧驱动 ×3</text><text x="340" y="114" font-size="11">自举供电</text>
+    <rect x="270" y="150" width="140" height="60" rx="5" fill="#fff" stroke="#333"/><text x="340" y="176">低压侧驱动 ×3</text><text x="340" y="194" font-size="11">保护逻辑</text>
+    <rect x="440" y="70" width="270" height="140" rx="5" fill="#ebdef0" stroke="#333"/><text x="575" y="120" font-weight="bold">6 × IGBT + 6 × 二极管</text><text x="575" y="142" font-size="11">三相全桥</text><text x="575" y="162" font-size="11">内置温度检测</text>
+  </g>
+  <rect x="20" y="90" width="180" height="80" rx="8" fill="#d6eaf8" stroke="#2980b9"/><text x="110" y="122" font-size="13" text-anchor="middle">主控 MCU</text><text x="110" y="142" font-size="11" text-anchor="middle">6 路 PWM（5V 逻辑）</text>
+  <rect x="790" y="90" width="180" height="80" rx="8" fill="#fdebd0" stroke="#e67e22"/><text x="880" y="122" font-size="13" text-anchor="middle">压缩机</text><text x="880" y="142" font-size="11" text-anchor="middle">永磁同步电机</text>
+  <g stroke="#333" stroke-width="2" fill="none"><line x1="200" y1="130" x2="268" y2="130" marker-end="url(#ak)"/><line x1="730" y1="130" x2="788" y2="130" marker-end="url(#ak)"/></g>
+  <path d="M268,200 H210 V170" stroke="#c0392b" stroke-width="2" fill="none" marker-end="url(#ar)"/><text x="160" y="215" font-size="11" fill="#c0392b">FAULT 故障输出</text>
+  <text x="250" y="252" font-size="12" fill="#555">MCU 只要给 5V 的 PWM，IPM 里面自己完成电平转换、驱动、保护。"空调报 IPM 保护故障"就是这个模块的保护动作了。</text>
+</svg>
+</figure>
+<div class="key">变频空调还有一个 <b>PFC</b>（功率因数校正）电路：整流后接一个 Boost 升压，把母线升到约 380V，同时让输入电流跟着电压呈正弦形，功率因数接近 1。PFC 的开关管也常是 IGBT 或 MOSFET。为什么变频空调省电：压缩机转速可以连续调，温度到了以后低速运行维持，而不是定频空调那样频繁启停。</div>
+</div>
+
+<!-- ============================================================ -->
+<h2 id="s14">16. 失效方式与万用表检测</h2>
+<table>
+<tr><th>失效方式</th><th>原因</th><th>怎么预防</th></tr>
+<tr><td>过压击穿</td><td>关断时 L·di/dt 尖峰（母线杂散电感）、电网浪涌、电磁炉谐振异常</td><td>选够耐压余量、母线用叠层母排减小电感、加吸收电容、增大关断 Rg</td></tr>
+<tr><td>短路烧毁</td><td>负载短路、桥臂直通（死区不够、驱动受干扰）</td><td>DESAT 保护 + 软关断、负压关断、足够死区</td></tr>
+<tr><td>过热</td><td>散热不良、风扇坏、导热硅脂干、频率过高</td><td>算好损耗和热阻，留温度余量，加 NTC 过温保护</td></tr>
+<tr><td>栅极击穿</td><td>Vge 超 ±20V、静电</td><td>G-E 并稳压管/TVS 和 10k 电阻，拿取时防静电</td></tr>
+<tr><td>驱动不足</td><td>驱动电压低，IGBT 半导通进入线性区</td><td>驱动电源欠压锁定（UVLO）</td></tr>
+<tr><td>疲劳老化</td><td>反复热胀冷缩，模块内部键合线脱落、焊层开裂</td><td>降低温度波动（车规、风电很重视）</td></tr>
+</table>
+
+<h3>万用表粗测单管 IGBT（带内置二极管）</h3>
+<ol>
+<li><b>先放电：</b>从电路板上拆下来测；在板上测之前必须确认大电容已放电。</li>
+<li><b>短接 G-E</b>，放掉栅极电荷。</li>
+<li><b>二极管档测 C-E：</b>红表笔接 E、黑表笔接 C，应显示约 0.3~0.6V（内置二极管正向）；反过来应不通（显示 OL）。两个方向都接近 0 = 击穿短路。</li>
+<li><b>触发测试：</b>用二极管档（或电阻档）红表笔碰 G、黑表笔碰 E，给栅极充一点电；再测红 C、黑 E，这时如果显示导通（压降变小），说明能被打开。再短接 G-E，应恢复不通。</li>
+<li>万用表电压一般只有 2~3V，有的 IGBT 阈值高，触发测试不明显不代表坏了。可靠测试要用专门的测试仪或搭简单电路（15V 驱动 + 限流负载）。</li>
+</ol>
+<div class="warn">模块（如变频器的 IGBT 模块）用同样方法逐个桥臂测：P-U、U-N 等每个位置的二极管压降都应该接近，某个位置为 0 就是击穿。炸过的变频器经常连带驱动电路、栅极电阻一起损坏，只换模块不查驱动，上电会再炸一次。</div>
+
+<!-- ============================================================ -->
+<h2 id="s14b">17. 常见型号、参数与参考价格</h2>
+<p class="small">参数取自各型号规格书的典型值或标称值（I<sub>C</sub> 标注了温度），不同批次和厂家会有差异。价格是 2026 年国内零售小批量（立创商城、淘宝）的大致区间，没有逐一实时核对；原装、拆机、国产替代差价很大，市面上翻新货和假货不少，以实际报价为准。</p>
+<table>
+<tr><th>型号</th><th>厂家</th><th>V<sub>CES</sub></th><th>I<sub>C</sub></th><th>V<sub>CE(sat)</sub> 典型</th><th>二极管</th><th>封装</th><th>典型用途</th><th>参考价/只</th></tr>
+<tr><td>FGA25N120ANTD</td><td>onsemi</td><td>1200V</td><td>25A @100°C</td><td>约 2.0V</td><td>有</td><td>TO-3PN</td><td>电磁炉（经典维修替换件）</td><td>¥3~8</td></tr>
+<tr><td>IHW20N120R3（H20R1203）</td><td>Infineon</td><td>1200V</td><td>20A @100°C</td><td>约 1.5V</td><td>RC 逆导</td><td>TO-247</td><td>电磁炉</td><td>¥3~8</td></tr>
+<tr><td>IHW20N135R5（H20MR5）</td><td>Infineon</td><td>1350V</td><td>20A @100°C</td><td>约 1.6V</td><td>RC 逆导</td><td>TO-247</td><td>电磁炉（耐压更高）</td><td>¥4~10</td></tr>
+<tr><td>FGH40N60SFD</td><td>onsemi</td><td>600V</td><td>40A @100°C</td><td>约 2.3V</td><td>有</td><td>TO-247</td><td>焊机、UPS、PFC</td><td>¥4~10</td></tr>
+<tr><td>IKW50N60T（K50T60）</td><td>Infineon</td><td>600V</td><td>50A @100°C</td><td>约 1.5V</td><td>有</td><td>TO-247</td><td>焊机、逆变器</td><td>¥8~18</td></tr>
+<tr><td>IKW40N120H3（K40H1203）</td><td>Infineon</td><td>1200V</td><td>40A @100°C</td><td>约 2.05V</td><td>有</td><td>TO-247</td><td>380V 焊机、光伏、高频</td><td>¥15~30</td></tr>
+<tr><td>FSBB30CH60 系列</td><td>onsemi</td><td>600V</td><td>30A</td><td>—</td><td>有</td><td>SPM27</td><td>变频空调压缩机 IPM</td><td>¥25~60</td></tr>
+<tr><td>FS100R12KT4 类</td><td>Infineon</td><td>1200V</td><td>100A</td><td>约 1.75V</td><td>有</td><td>六单元模块</td><td>中小功率变频器</td><td>¥300~900</td></tr>
+<tr><td>FF450R12ME4 类</td><td>Infineon</td><td>1200V</td><td>450A</td><td>约 1.75V</td><td>有</td><td>EconoDUAL 半桥</td><td>大功率变频器、风电、储能</td><td>¥800~2000</td></tr>
+</table>
+<p class="small">国产厂家（斯达半导、士兰微、比亚迪半导体、中车时代、宏微等）在家电、工控、电动车上已大量替代，型号命名各家不同，选型时按 V<sub>CES</sub>、I<sub>C</sub>@100°C、V<sub>CE(sat)</sub>、E<sub>ts</sub>、t<sub>sc</sub> 逐项对比。</p>
+
+<!-- ============================================================ -->
+<h2 id="s14c">18. 易错点与设计注意事项</h2>
+<table>
+<tr><th style="width:24%">问题</th><th>说明与做法</th></tr>
+<tr><td>把"饱和区"和 MOS 搞混</td><td>IGBT 的饱和区 = 完全导通（三极管叫法）；MOS 的饱和区 = 恒流区。看资料时要分清是哪种器件。</td></tr>
+<tr><td>用 10~12V 驱动 IGBT</td><td>IGBT 阈值 5~6.5V，10V 时压降明显变大，大电流下可能进入放大区发热。标准是 +15V。</td></tr>
+<tr><td>只看 I<sub>C</sub>@25°C</td><td>25°C 是外壳恒温的理想条件。实际看 100°C 下的电流，再按损耗和热阻核算结温。</td></tr>
+<tr><td>以为 IGBT 能反向导通</td><td>没有沟道反向导通能力，也没有寄生体二极管。不能做同步整流，感性负载必须有反并联二极管。</td></tr>
+<tr><td>死区按 MOS 的经验设</td><td>IGBT 有拖尾，死区一般 1~3µs，比 MOS 的几百 ns 长。太短会直通。</td></tr>
+<tr><td>没有负压关断</td><td>桥式电路里对管的 dv/dt 经 Cgc 会把栅极抬起来。大功率用 −5~−8V 关断，或加米勒钳位。</td></tr>
+<tr><td>栅极悬空</td><td>G-E 并 10k 电阻。驱动板没插或断线时，高压一加栅极被感应打开，直接短路。</td></tr>
+<tr><td>短路保护太慢</td><td>t<sub>sc</sub> 只有 5~10µs，保险丝、软件过流都来不及，必须在驱动器硬件里做 DESAT。</td></tr>
+<tr><td>关断太快</td><td>Rg 太小，关断 di/dt 大，母线杂散电感感应出的尖峰叠加在母线上可能超过 V<sub>CES</sub>。用叠层母排、吸收电容，适当加大关断 Rg。</td></tr>
+<tr><td>驱动回路和主电流共用发射极线</td><td>大 di/dt 在发射极引线上产生电压，叠加到 Vge，导致振荡或误开关。模块要用辅助发射极端子，单管尽量用 TO-247-4。</td></tr>
+<tr><td>拿 IGBT 跑高频</td><td>硬开关超过 20~30kHz 损耗急剧上升。高频优先考虑 MOSFET、SiC，或用软开关拓扑。</td></tr>
+<tr><td>单管直接并联</td><td>可以并，但要选正温度系数（FS 沟槽型）同批次器件，每管独立栅极电阻，布局对称；电流降额使用。</td></tr>
+<tr><td>维修只换管子</td><td>炸管经常带坏栅极电阻、驱动芯片、稳压管。不查驱动就上电，新管子会再炸。上电先用隔离变压器 + 串灯泡限流试机。</td></tr>
+</table>
+
+<!-- ============================================================ -->
+<h2 id="s15">19. 问答速查</h2>
+<div class="qa"><b class="q">Q：IGBT 和 MOSFET 最本质的区别？</b><br>IGBT 底部多一层 P+，导通时往漂移区注入空穴（电导调制），高压下压降低；代价是关断有拖尾电流，开关慢。</div>
+<div class="qa"><b class="q">Q：为什么低压场合不用 IGBT？</b><br>IGBT 有约 1V 的固定门槛压降；低压 MOS 的 Rds(on) 只有几 mΩ，同样电流压降小得多。</div>
+<div class="qa"><b class="q">Q：为什么 IGBT 频率上不去？</b><br>关断时注入的空穴要复合消失，产生拖尾电流，关断损耗 Eoff 大，开关损耗 = (Eon+Eoff)×f。</div>
+<div class="qa"><b class="q">Q：IGBT 有体二极管吗？</b><br>没有。感性负载要另外并联续流二极管，大多数型号已内置。IGBT 也不能反向导通，不能用来做同步整流。</div>
+<div class="qa"><b class="q">Q：驱动为什么要 +15V / 负压？</b><br>+15V 保证完全饱和、压降最低；负压防止桥臂对管开关时经米勒电容误导通造成直通。</div>
+<div class="qa"><b class="q">Q：DESAT 是什么？</b><br>导通时监测 Vce，短路时电流暴增、IGBT 退出饱和，Vce 升高，超过约 7V 就软关断。要在 tsc（5~10µs）内完成。</div>
+<div class="qa"><b class="q">Q：电磁炉为什么用 1200V 以上的管子？</b><br>LC 谐振时 Vce 峰值约为母线峰值的 3 倍多，达到 1000V 以上。</div>
+<div class="qa"><b class="q">Q：电磁炉为什么能跑 20kHz 以上？</b><br>准谐振：等 Vce 自然回到 0 再开通（零电压开通），开通损耗几乎为 0。</div>
+<div class="qa"><b class="q">Q：变频器怎么改变电机转速？</b><br>6 个 IGBT 组成三相桥，用 SPWM 合成频率、幅值可调的三相交流电。</div>
+<div class="qa"><b class="q">Q：电动车为什么开始用 SiC？</b><br>800V 平台下 SiC 开关损耗更低、效率更高，续航和充电速度更好；400V 平台 IGBT 仍是主流，成本低。</div>
+<div class="qa"><b class="q">Q：IPM 是什么？</b><br>把 6 个功率管、驱动和保护集成在一起的模块，MCU 直接给 5V PWM 就行，家电变频常用。</div>
+
+<div class="warn"><b>安全提醒：</b>IGBT 的应用场合电压都很高：电磁炉管子两端有 1000V 以上，变频器母线 540V（断电后电容放电可能要几分钟，看面板指示灯熄灭后再等，并用万用表确认）。电动车高压系统更要专业资质操作。维修前务必断电、放电、确认。</div>
+
+</body>
+</html>

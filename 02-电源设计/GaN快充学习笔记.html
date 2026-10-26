@@ -1,0 +1,596 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>氮化镓快充 + Type-C 快充协议 学习笔记</title>
+<style>
+  body { font-family: "Microsoft YaHei", "PingFang SC", sans-serif; max-width: 1100px; margin: 0 auto; padding: 20px 28px 80px; color: #222; line-height: 1.75; background: #fafafa; }
+  h1 { border-bottom: 3px solid #27ae60; padding-bottom: 8px; }
+  h2 { margin-top: 48px; padding: 6px 12px; background: #1e5f45; color: #fff; border-radius: 4px; }
+  h3 { margin-top: 28px; color: #c0392b; border-left: 4px solid #c0392b; padding-left: 8px; }
+  table { border-collapse: collapse; width: 100%; margin: 10px 0; background: #fff; font-size: 14px; }
+  th, td { border: 1px solid #ccc; padding: 5px 8px; text-align: left; vertical-align: top; }
+  th { background: #ecf0f1; }
+  pre { font-family: Consolas, monospace; background: #f0f0f0; border-radius: 3px; padding: 10px 14px; overflow-x: auto; }
+  figure { margin: 16px 0; background: #fff; border: 1px solid #ddd; border-radius: 6px; padding: 10px; }
+  figcaption { text-align: center; color: #666; font-size: 13px; margin-top: 6px; }
+  svg { width: 100%; height: auto; display: block; }
+  svg text { font-family: "Microsoft YaHei", sans-serif; }
+  .key { background: #fff8e1; border-left: 5px solid #f39c12; padding: 8px 14px; margin: 12px 0; }
+  .warn { background: #fdecea; border-left: 5px solid #e74c3c; padding: 8px 14px; margin: 12px 0; }
+  .qa { background: #fff; border: 1px solid #ddd; border-radius: 6px; padding: 8px 14px; margin: 10px 0; }
+  .qa b.q { color: #2980b9; }
+  nav { background: #fff; border: 1px solid #ddd; border-radius: 6px; padding: 8px 20px; }
+  .small { font-size: 13px; color: #666; }
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute">
+  <defs>
+    <marker id="ak" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#333"/></marker>
+    <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#e74c3c"/></marker>
+    <marker id="ag" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#27ae60"/></marker>
+    <marker id="ab" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#2980b9"/></marker>
+    <marker id="agr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#999"/></marker>
+  </defs>
+</svg>
+
+<h1>氮化镓（GaN）快充 + Type-C 快充协议 学习笔记<br><span class="small">以市面常见的 65W 单口 USB-C 氮化镓充电器为例（5V/9V/12V/15V/20V，PPS，AVS）</span></h1>
+
+<nav><b>目录</b>
+<ol>
+  <li><a href="#s1">和 LD7575 方案比，变了什么</a></li>
+  <li><a href="#s2">典型 65W 氮化镓快充简化原理图</a></li>
+  <li><a href="#s3">原边：氮化镓 + 准谐振（QR）谷底开通</a></li>
+  <li><a href="#s4">副边：同步整流（SR）</a></li>
+  <li><a href="#s5">输出可调：协议芯片怎么改电压</a></li>
+  <li><a href="#s6">Type-C 接口：CC 引脚和插入检测</a></li>
+  <li><a href="#s7">USB PD 协议：握手流程与物理层</a></li>
+  <li><a href="#s8">PDO 种类：固定、PPS、AVS、EPR</a></li>
+  <li><a href="#s9">D+/D− 上的私有协议（QC、华为、UFCS 等）</a></li>
+  <li><a href="#s10">完整流程：从插上到 20V 输出</a></li>
+  <li><a href="#s11">更大功率：PFC、有源钳位</a></li>
+  <li><a href="#s12">问答速查</a></li>
+</ol>
+</nav>
+
+<div class="warn">说明：厂家不会公开完整原理图，下面的原理图是按一款真实拆解的 65W 充电器（充电头网拆解的瑞源 RY-C65B）的方案<b>整理出的简化通用图</b>，用来讲原理。图中芯片型号来自拆解报告，元件连接是这类方案的典型接法，不等于该产品的真实线路。估算数字（匝数比等）都是示意值。<br>
+参考来源：<a href="https://www.chargerlab.com/teardown-of-the-ruiyuan-65w-gan-pd-fast-charger">充电头网：Ruiyuan 65W GaN 拆解</a>、<a href="https://www.chargerlab.com/avs-protocol-explained-the-standard-making-fast-charging-faster-and-safer/">充电头网：AVS 协议解读</a>、<a href="https://learn.lonelybinary.com/manuals/typec/how-much-current">Lonely Binary：CC 电阻对照</a>、<a href="https://www.power.com/sites/default/files/documents/rdr-928_60w_ultra_compact_usb_pd_3_charger_using_innoswitch4-cz_powigan_clampzero_mine-cap.pdf">PI RDR-928 参考设计</a>。引用内容均已转述。</div>
+
+<!-- ============================================================ -->
+<h2 id="s1">1. 和 LD7575 方案比，变了什么</h2>
+<p>核心拓扑<b>还是反激</b>：导通存能、关断放能，之前学的伏秒平衡、漏感、光耦反馈全都适用。变化在于每个环节都做了"升级"：</p>
+<table>
+<tr><th width="130">环节</th><th>LD7575 5V/2A（2007 年）</th><th>65W 氮化镓快充（现在）</th><th>为什么要变</th></tr>
+<tr><td>主开关</td><td>硅 MOSFET 2N60B，外置</td><td>氮化镓 HEMT，和控制器封装在一起（如 MK2706：700V/170mΩ GaN）</td><td>开关损耗小，能跑更高频率，变压器更小</td></tr>
+<tr><td>控制方式</td><td>固定 65kHz，DCM</td><td>准谐振（QR），在漏极电压谷底开通；轻载跳谷底、Burst</td><td>降低开通损耗，频率可以提高到 100kHz 以上</td></tr>
+<tr><td>次级整流</td><td>肖特基 SB540（约 0.5V 压降）</td><td>同步整流：MOSFET（如 100V/3.7mΩ）+ SR 控制器</td><td>3.25A 时肖特基要烧 1.6W，MOS 只烧约 0.04W</td></tr>
+<tr><td>输出电压</td><td>固定 5V（TL431 + 分压电阻）</td><td>3.3~21V 可调（协议芯片内置可调基准，直接驱动光耦）</td><td>功率 P = V×I，线缆电流受限，只能提电压</td></tr>
+<tr><td>芯片供电</td><td>辅助绕组，VCC 10~25V</td><td>辅助绕组，VCC 范围很宽（如 9~85V）</td><td>输出从 3.3V 变到 21V，辅助绕组电压跟着变 6 倍</td></tr>
+<tr><td>输出接口</td><td>直接输出</td><td>VBUS MOS 开关 + 电流采样电阻 + Type-C 母座</td><td>Type-C 规定没插设备时 VBUS 必须为 0V</td></tr>
+<tr><td>和设备通信</td><td>无</td><td>CC 线跑 USB PD；D+/D− 跑 QC、FCP、SCP、AFC、UFCS 等</td><td>先协商好电压电流，才能安全地输出高压</td></tr>
+<tr><td>体积 / 功率密度</td><td>大</td><td>约 38mm 见方，65W；灌白色导热胶</td><td>高频 + 低损耗 + 散热设计</td></tr>
+</table>
+
+<figure>
+<svg viewBox="0 0 1000 300">
+  <g font-size="13" text-anchor="middle">
+    <rect x="10" y="40" width="100" height="60" rx="6" fill="#d6eaf8" stroke="#2980b9"/><text x="60" y="66">AC 输入</text><text x="60" y="84" font-size="11">保险/NTC/共模</text>
+    <rect x="130" y="40" width="120" height="60" rx="6" fill="#e8daef" stroke="#8e44ad"/><text x="190" y="66">整流 + π 滤波</text><text x="190" y="84" font-size="11">2~3 个高压电容</text>
+    <rect x="270" y="40" width="170" height="60" rx="6" fill="#fdebd0" stroke="#e67e22"/><text x="355" y="62">QR 控制器 + GaN</text><text x="355" y="80" font-size="11">谷底开通，100kHz+</text><text x="355" y="94" font-size="11">（一颗芯片）</text>
+    <rect x="460" y="40" width="100" height="60" rx="6" fill="#d1f2eb" stroke="#16a085"/><text x="510" y="66">高频变压器</text><text x="510" y="84" font-size="11">约占板子一半</text>
+    <rect x="580" y="40" width="120" height="60" rx="6" fill="#d5f5e3" stroke="#27ae60"/><text x="640" y="66">同步整流</text><text x="640" y="84" font-size="11">SR 控制器 + MOS</text>
+    <rect x="720" y="40" width="120" height="60" rx="6" fill="#d5f5e3" stroke="#27ae60"/><text x="780" y="66">输出电容</text><text x="780" y="84" font-size="11">+ VBUS MOS 开关</text>
+    <rect x="860" y="40" width="120" height="60" rx="6" fill="#eaeded" stroke="#555"/><text x="920" y="66">USB-C 母座</text><text x="920" y="84" font-size="11">VBUS/CC/D+/D−</text>
+    <rect x="620" y="200" width="200" height="70" rx="6" fill="#ebdef0" stroke="#8e44ad"/><text x="720" y="228" font-weight="bold">协议芯片</text><text x="720" y="248" font-size="11">PD/PPS/QC… + 可调 CV/CC 环路</text>
+    <rect x="270" y="200" width="170" height="70" rx="6" fill="#fef9e7" stroke="#d4ac0d"/><text x="355" y="228">光耦</text><text x="355" y="248" font-size="11">把"目标电压"传回原边</text>
+  </g>
+  <g stroke="#333" stroke-width="1.6" fill="none">
+    <line x1="110" y1="70" x2="128" y2="70" marker-end="url(#ak)"/><line x1="250" y1="70" x2="268" y2="70" marker-end="url(#ak)"/>
+    <line x1="440" y1="70" x2="458" y2="70" marker-end="url(#ak)"/><line x1="560" y1="70" x2="578" y2="70" marker-end="url(#ak)"/>
+    <line x1="700" y1="70" x2="718" y2="70" marker-end="url(#ak)"/><line x1="840" y1="70" x2="858" y2="70" marker-end="url(#ak)"/>
+    <path d="M920,100 V235 H822" stroke="#8e44ad" marker-end="url(#ak)"/>
+    <line x1="620" y1="235" x2="442" y2="235" stroke="#2980b9" marker-end="url(#ab)"/>
+    <line x1="355" y1="200" x2="355" y2="102" stroke="#2980b9" marker-end="url(#ab)"/>
+    <line x1="760" y1="200" x2="760" y2="102" stroke="#e74c3c" marker-end="url(#ar)"/>
+  </g>
+  <g font-size="12">
+    <text x="800" y="135" fill="#8e44ad">CC 通信：</text><text x="800" y="151" fill="#8e44ad">手机要几伏？</text>
+    <text x="470" y="225" fill="#2980b9">改目标电压</text>
+    <text x="365" y="160" fill="#2980b9">FB</text>
+    <text x="645" y="180" fill="#e74c3c">开/关 VBUS、采样电流</text>
+  </g>
+  <line x1="510" y1="15" x2="510" y2="290" stroke="#e74c3c" stroke-width="2" stroke-dasharray="6 4"/>
+  <text x="516" y="25" font-size="12" fill="#e74c3c">← 初级 | 次级 →</text>
+</svg>
+<figcaption>和 LD7575 相比，多出来的是"可调"和"通信"：手机告诉协议芯片要多少伏，协议芯片通过光耦让原边改送能量。</figcaption>
+</figure>
+
+<!-- ============================================================ -->
+<h2 id="s2">2. 典型 65W 氮化镓快充简化原理图</h2>
+<figure>
+<svg viewBox="0 0 1300 680">
+  <!-- 分区底色 -->
+  <g opacity="0.10">
+    <rect x="8" y="40" width="415" height="225" fill="#2980b9"/>
+    <rect x="425" y="40" width="165" height="590" fill="#8e44ad"/>
+    <rect x="595" y="40" width="135" height="210" fill="#e74c3c"/>
+    <rect x="595" y="262" width="270" height="368" fill="#e67e22"/>
+    <rect x="735" y="40" width="130" height="210" fill="#16a085"/>
+    <rect x="875" y="225" width="115" height="120" fill="#27ae60"/>
+    <rect x="995" y="40" width="190" height="305" fill="#2ecc71"/>
+    <rect x="875" y="370" width="320" height="260" fill="#8e44ad"/>
+    <rect x="1195" y="40" width="100" height="330" fill="#7f8c8d"/>
+  </g>
+  <g font-size="14" font-weight="bold">
+    <text x="15" y="33" fill="#2471a3">① 输入保护 + EMI</text>
+    <text x="428" y="33" fill="#7d3c98">② 整流 + π 滤波</text>
+    <text x="600" y="33" fill="#c0392b">③ 钳位</text>
+    <text x="745" y="33" fill="#117a65">④ 变压器</text>
+    <text x="1000" y="33" fill="#1e8449">⑥ 输出 + VBUS 开关</text>
+    <text x="1205" y="33" fill="#555">⑧ USB-C</text>
+    <text x="600" y="282" fill="#ca6f1e">⑤ QR 控制器 + GaN + 辅助供电</text>
+    <text x="880" y="243" fill="#1e8449" font-size="13">⑦ 同步整流</text>
+    <text x="1010" y="650" fill="#6c3483">⑨ 协议芯片 + 光耦反馈</text>
+  </g>
+
+  <g stroke="#333" stroke-width="2" fill="none">
+    <!-- 输入 -->
+    <path d="M30,80 H50"/><rect x="50" y="73" width="40" height="14"/><path d="M90,80 H110"/><rect x="110" y="73" width="40" height="14"/><path d="M150,80 H220"/>
+    <path d="M30,220 H220"/>
+    <path d="M180,80 V130"/><rect x="174" y="130" width="12" height="40"/><path d="M180,170 V220"/>
+    <path d="M220,80 a7.5,7.5 0 0,1 15,0 a7.5,7.5 0 0,1 15,0 a7.5,7.5 0 0,1 15,0 a7.5,7.5 0 0,1 15,0"/>
+    <path d="M220,220 a7.5,7.5 0 0,0 15,0 a7.5,7.5 0 0,0 15,0 a7.5,7.5 0 0,0 15,0 a7.5,7.5 0 0,0 15,0"/>
+    <line x1="220" y1="147" x2="280" y2="147"/><line x1="220" y1="153" x2="280" y2="153"/>
+    <path d="M280,80 H340"/><path d="M280,220 H340"/>
+    <path d="M310,80 V145"/><line x1="298" y1="145" x2="322" y2="145"/><line x1="298" y1="155" x2="322" y2="155"/><path d="M310,155 V220"/>
+    <rect x="340" y="60" width="70" height="180"/>
+    <!-- 母线 + π滤波 -->
+    <path d="M410,90 H475"/>
+    <path d="M475,90 a7.5,7.5 0 0,1 15,0 a7.5,7.5 0 0,1 15,0 a7.5,7.5 0 0,1 15,0 a7.5,7.5 0 0,1 15,0"/>
+    <path d="M535,90 H760"/>
+    <path d="M450,90 V300"/><line x1="436" y1="300" x2="464" y2="300"/><path d="M436,312 Q450,304 464,312"/><path d="M450,309 V610"/>
+    <path d="M560,90 V300"/><line x1="546" y1="300" x2="574" y2="300"/><path d="M546,312 Q560,304 574,312"/><path d="M560,309 V610"/>
+    <path d="M410,230 H420 V610 H820"/>
+    <!-- RCD -->
+    <path d="M760,250 H650 V232"/><path d="M650,205 V180"/>
+    <path d="M620,180 H680"/><path d="M620,180 V160"/><rect x="613" y="120" width="14" height="40"/><path d="M620,120 V90"/>
+    <path d="M680,180 V140"/><line x1="668" y1="140" x2="692" y2="140"/><line x1="668" y1="130" x2="692" y2="130"/><path d="M680,130 V90"/>
+    <!-- 变压器 -->
+    <path d="M760,90 V120"/>
+    <path d="M760,120 a12.5,12.5 0 0,1 0,25 a12.5,12.5 0 0,1 0,25 a12.5,12.5 0 0,1 0,25 a12.5,12.5 0 0,1 0,25"/>
+    <path d="M760,220 V300"/>
+    <line x1="782" y1="110" x2="782" y2="230"/><line x1="788" y1="110" x2="788" y2="230"/>
+    <path d="M810,120 a12.5,12.5 0 0,0 0,25 a12.5,12.5 0 0,0 0,25 a12.5,12.5 0 0,0 0,25 a12.5,12.5 0 0,0 0,25"/>
+    <!-- 原边 IC -->
+    <rect x="640" y="300" width="160" height="120" fill="#fdebd0"/>
+    <path d="M760,420 V440"/><rect x="753" y="440" width="14" height="40"/><path d="M760,480 V610"/>
+    <path d="M680,420 V610"/>
+    <!-- 辅助绕组 -->
+    <path d="M620,450 a10,10 0 0,1 0,20 a10,10 0 0,1 0,20 a10,10 0 0,1 0,20 a10,10 0 0,1 0,20"/>
+    <path d="M620,530 V610"/><path d="M620,450 V447"/><path d="M620,425 V340 H640"/>
+    <path d="M620,370 H590 V470"/><line x1="578" y1="470" x2="602" y2="470"/><line x1="578" y1="480" x2="602" y2="480"/><path d="M590,480 V610"/>
+    <!-- FB / 光耦 -->
+    <path d="M725,420 V505 H852 V530"/>
+    <path d="M852,575 V610"/>
+    <!-- Y 电容 -->
+    <path d="M820,610 V340 H862"/><line x1="862" y1="328" x2="862" y2="352"/><line x1="878" y1="328" x2="878" y2="352"/><path d="M878,340 H900 V330"/>
+    <!-- 次级 -->
+    <path d="M810,120 V90 H1100"/>
+    <path d="M810,220 V240 H900 V255"/>
+    <rect x="885" y="255" width="30" height="50" fill="#d5f5e3"/>
+    <path d="M900,305 V330 H1050"/><rect x="1050" y="323" width="40" height="14" fill="#fff"/><path d="M1090,330 H1200"/>
+    <rect x="925" y="255" width="60" height="50" fill="#d5f5e3"/><path d="M915,280 H925"/>
+    <path d="M1000,90 V200"/><line x1="984" y1="200" x2="1016" y2="200"/><line x1="984" y1="210" x2="1016" y2="210"/><path d="M1000,210 V330"/>
+    <rect x="1100" y="75" width="50" height="30" fill="#d5f5e3"/><path d="M1150,90 H1200"/>
+    <!-- 协议芯片 -->
+    <rect x="980" y="400" width="170" height="200" fill="#ebdef0"/>
+    <path d="M1020,90 V400"/><path d="M995,330 V400"/>
+    <path d="M1050,330 V400"/><path d="M1090,330 V400"/>
+    <path d="M1125,105 V400"/>
+    <path d="M1150,440 H1170 V170 H1200"/><path d="M1150,465 H1178 V200 H1200"/>
+    <path d="M1150,490 H1186 V240 H1200"/><path d="M1150,515 H1194 V270 H1200"/>
+    <path d="M1020,380 H950 V440"/><rect x="943" y="440" width="14" height="40"/><path d="M950,480 V500 H895 V540"/>
+    <path d="M895,558 V585 H960 V560 H980"/>
+    <!-- 母座 -->
+    <rect x="1200" y="60" width="90" height="290" fill="#eaeded"/>
+  </g>
+
+  <!-- 器件符号细节 -->
+  <polygon points="638,232 662,232 650,207" fill="#e74c3c" stroke="#333"/><line x1="638" y1="206" x2="662" y2="206" stroke="#333" stroke-width="2.5"/>
+  <polygon points="608,447 632,447 620,426" fill="#f1c40f" stroke="#333"/><line x1="608" y1="425" x2="632" y2="425" stroke="#333" stroke-width="2.5"/>
+  <rect x="740" y="335" width="45" height="60" fill="#2ecc71" stroke="#1e8449"/><text x="762" y="362" font-size="13" text-anchor="middle" font-weight="bold" fill="#fff">GaN</text><text x="762" y="380" font-size="10" text-anchor="middle" fill="#fff">700V</text>
+  <rect x="650" y="345" width="80" height="62" fill="#fff" stroke="#e67e22"/>
+  <text x="690" y="363" font-size="11" text-anchor="middle">谷底检测</text><text x="690" y="379" font-size="11" text-anchor="middle">PWM/Burst</text><text x="690" y="395" font-size="11" text-anchor="middle">保护</text>
+  <rect x="830" y="515" width="85" height="78" fill="#fef9e7" stroke="#d4ac0d" stroke-dasharray="4 2"/>
+  <line x1="838" y1="538" x2="838" y2="568" stroke="#333" stroke-width="2.5"/>
+  <path d="M838,546 L852,532 V530 M838,560 L852,573 V575" stroke="#333" stroke-width="2" fill="none"/>
+  <polygon points="884,540 906,540 895,558" fill="#f39c12" stroke="#333"/><line x1="884" y1="558" x2="906" y2="558" stroke="#333" stroke-width="2"/>
+  <line x1="880" y1="546" x2="862" y2="546" stroke="#f39c12" stroke-width="2" marker-end="url(#ar)"/><line x1="880" y1="556" x2="862" y2="556" stroke="#f39c12" stroke-width="2" marker-end="url(#ar)"/>
+  <circle cx="750" cy="123" r="4"/><circle cx="820" cy="217" r="4"/><circle cx="630" cy="453" r="4"/>
+  <g fill="#333"><circle cx="760" cy="250" r="3.5"/><circle cx="1020" cy="380" r="3.5"/><circle cx="1000" cy="90" r="3.5"/><circle cx="1000" cy="330" r="3.5"/><circle cx="620" cy="370" r="3.5"/><circle cx="450" cy="90" r="3.5"/><circle cx="560" cy="90" r="3.5"/></g>
+  <line x1="1105" y1="112" x2="1145" y2="112" stroke="#333" stroke-width="2"/>
+  <polyline points="785,30 785,250 870,250 870,665" fill="none" stroke="#e74c3c" stroke-width="2" stroke-dasharray="6 5"/>
+
+  <g font-size="12">
+    <text x="12" y="85">L</text><text x="12" y="225">N</text>
+    <text x="52" y="68">保险丝</text><text x="117" y="68">NTC</text>
+    <text x="134" y="155">压敏</text>
+    <text x="222" y="125">共模电感</text>
+    <text x="318" y="140" font-size="11">X电容</text>
+    <text x="375" y="140" text-anchor="middle">整流桥</text><text x="375" y="160" text-anchor="middle" font-size="11">600V/8A</text>
+    <text x="414" y="84" font-size="11">+</text><text x="414" y="226" font-size="11">−</text>
+    <text x="458" y="355" font-size="11">33µF</text><text x="458" y="370" font-size="11">400V</text>
+    <text x="568" y="355" font-size="11">33µF</text><text x="568" y="370" font-size="11">400V</text>
+    <text x="478" y="76" font-size="11">工字电感</text>
+    <text x="465" y="110" fill="#7d3c98" font-size="11">≈310V</text>
+    <text x="598" y="145" font-size="11">R</text><text x="694" y="140" font-size="11">C</text><text x="628" y="225" font-size="11">D</text>
+    <text x="728" y="160" font-size="11">Np</text><text x="826" y="175" font-size="11">Ns</text>
+    <text x="645" y="316" font-size="11" font-weight="bold">QR控制器+GaN(如MK2706)</text>
+    <text x="644" y="337" font-size="10">VCC</text><text x="712" y="415" font-size="10">FB</text><text x="670" y="415" font-size="10">GND</text>
+    <text x="768" y="314" font-size="10">D</text><text x="768" y="415" font-size="10">S</text>
+    <text x="772" y="465" font-size="11">Rcs</text>
+    <text x="634" y="520" font-size="11">辅助</text><text x="634" y="535" font-size="11">绕组</text>
+    <text x="560" y="505" font-size="11">Cvcc</text>
+    <text x="598" y="410" font-size="11">D</text>
+    <text x="432" y="630" fill="#555">初级地</text>
+    <text x="848" y="372" font-size="11" fill="#555">Y电容</text>
+    <text x="836" y="610" font-size="11">光耦</text>
+    <text x="886" y="285" font-size="10">SR</text><text x="886" y="298" font-size="10">MOS</text>
+    <text x="930" y="275" font-size="11">SR 控制器</text><text x="930" y="292" font-size="10">(检测 Vds)</text>
+    <text x="1008" y="160" font-size="11">Cout</text><text x="1008" y="175" font-size="10">560µF固态</text>
+    <text x="890" y="82" fill="#1e8449" font-weight="bold">Vout 3.3~21V</text>
+    <text x="1098" y="68" font-size="11">VBUS MOS</text>
+    <text x="1155" y="82" font-size="11" fill="#1e8449">VBUS</text>
+    <text x="1052" y="318" font-size="10">Rsense</text>
+    <text x="1095" y="350" fill="#555" font-size="11">次级地</text>
+    <text x="960" y="465" font-size="11">R</text>
+    <text x="990" y="440" font-size="13" font-weight="bold">协议芯片</text>
+    <text x="990" y="456" font-size="11">(如 IP2723T)</text>
+    <text x="990" y="476" font-size="11">PD/PPS/QC/FCP</text>
+    <text x="990" y="492" font-size="11">内置可调基准</text>
+    <text x="990" y="508" font-size="11">+ 误差放大器</text>
+    <text x="990" y="524" font-size="11">直接驱动光耦</text>
+    <text x="990" y="540" font-size="11">(代替 TL431)</text>
+    <text x="1025" y="590" font-size="11">电流采样/OVP/OCP</text>
+    <text x="986" y="565" font-size="10">OPTO</text>
+    <text x="1118" y="444" font-size="10">CC1</text><text x="1118" y="469" font-size="10">CC2</text><text x="1118" y="494" font-size="10">D+</text><text x="1118" y="519" font-size="10">D−</text>
+    <text x="1129" y="395" font-size="10">GATE</text>
+    <text x="1024" y="414" font-size="10">VIN</text>
+    <text x="1205" y="94" font-size="11">VBUS</text><text x="1205" y="174" font-size="11">CC1</text><text x="1205" y="204" font-size="11">CC2</text>
+    <text x="1205" y="244" font-size="11">D+</text><text x="1205" y="274" font-size="11">D−</text><text x="1205" y="334" font-size="11">GND</text>
+    <text x="1210" y="140" font-size="12" font-weight="bold">USB-C</text>
+  </g>
+</svg>
+<figcaption>红色虚线是初级/次级隔离分界。黑点为同名端（初次级相反，和 LD7575 一样是反激）。辅助绕组给原边芯片供电；协议芯片通过光耦告诉原边"我要几伏"。</figcaption>
+</figure>
+
+<h3>各部分作用</h3>
+<table>
+<tr><th width="160">部分</th><th width="230">典型元件（来自拆解）</th><th>作用</th></tr>
+<tr><td>① 输入保护 + EMI</td><td>贴片保险丝、NTC、共模电感</td><td>和 LD7575 一样：熔断保护、限制浪涌、挡共模噪声。很多小体积 GaN 充电器省掉 X 电容，差模噪声交给后面的 π 滤波</td></tr>
+<tr><td>② 整流 + π 滤波</td><td>600V/8A 整流桥；两三个 400V 电容（33µF+33µF+22µF）；工字电感</td><td>电容—电感—电容组成 π 型滤波：既储能又滤差模噪声。拆成多个小电容是为了塞进小体积</td></tr>
+<tr><td>③ 钳位</td><td>RCD（或有源钳位）</td><td>吸收漏感尖峰，保护 GaN（GaN 没有雪崩耐量，尖峰不能超标）</td></tr>
+<tr><td>④ 变压器</td><td>高频变压器</td><td>频率高了磁芯变小，但仍占板子约一半面积</td></tr>
+<tr><td>⑤ QR 控制器 + GaN</td><td>MK2706（集成 700V GaN，VCC 9~85V）</td><td>准谐振谷底开通，轻载自动 Burst，带 OVP/OPP/短路保护</td></tr>
+<tr><td>⑦ 同步整流</td><td>MK91808H SR 控制器 + 100V/3.7mΩ MOS</td><td>代替肖特基二极管，大幅降低次级整流损耗</td></tr>
+<tr><td>⑥ 输出 + VBUS 开关</td><td>25V/560µF 固态电容、30V/5mΩ VBUS MOS、mΩ 级采样电阻</td><td>滤波；没插设备时断开 VBUS；采样输出电流</td></tr>
+<tr><td>⑨ 协议 + 光耦</td><td>IP2723T、EL3H7 光耦</td><td>和手机"对话"，决定输出电压/电流，并通过光耦闭环控制原边</td></tr>
+<tr><td>⑧ USB-C</td><td>母座</td><td>VBUS 供电；CC 跑 PD；D+/D− 跑 QC 等协议</td></tr>
+</table>
+
+<!-- ============================================================ -->
+<h2 id="s3">3. 原边：氮化镓 + 准谐振（QR）谷底开通</h2>
+<h3>为什么用氮化镓</h3>
+<p>想把充电器做小，就要提高开关频率（每周期传的能量 E = P/f 变小，变压器就小）。但硅 MOS 的开关损耗和频率成正比，频率一高就发热。氮化镓器件的几项关键参数小得多：</p>
+<table>
+<tr><th>参数（同耐压、同导通电阻级别，数量级示意）</th><th>硅 MOSFET</th><th>氮化镓 HEMT</th><th>影响</th></tr>
+<tr><td>栅极电荷 Qg</td><td>几十 nC</td><td>几 nC</td><td>驱动损耗小，开关快</td></tr>
+<tr><td>输出电容 Coss</td><td>较大</td><td>小</td><td>开通时 ½CossV² 损耗小</td></tr>
+<tr><td>反向恢复电荷 Qrr</td><td>有（体二极管）</td><td>≈0（没有体二极管）</td><td>没有反向恢复损耗和尖峰</td></tr>
+<tr><td>开关速度</td><td>几十 ns</td><td>几 ns</td><td>V×I 重叠的时间短</td></tr>
+</table>
+<p>代价：GaN 没有雪崩耐量，漏极尖峰不能超过额定值；栅极耐压低（一般 ±几伏），驱动要专门设计。所以现在主流做法是<b>把 GaN 和驱动/控制器封装在一起</b>（如 MK2706、PI 的 InnoSwitch PowiGaN、Navitas GaNFast），用户不用自己处理驱动。</p>
+
+<h3>准谐振（QR）：在谷底开通</h3>
+<p>还记得 LD7575 波形里"能量放完后的振铃"吗？那是变压器初级电感和 MOS 的 Coss 在谐振。QR 控制器专门<b>等振铃到最低点（谷底）再开通</b>：</p>
+<figure>
+<svg viewBox="0 0 1000 330">
+  <line x1="60" y1="270" x2="980" y2="270" stroke="#333" marker-end="url(#ak)"/><line x1="60" y1="270" x2="60" y2="20" stroke="#333" marker-end="url(#ak)"/>
+  <text x="20" y="30" font-size="12">Vds</text><text x="955" y="290" font-size="12">t</text>
+  <g stroke-dasharray="4 3" stroke-width="1.2">
+    <line x1="60" y1="83" x2="970" y2="83" stroke="#c0392b"/><line x1="60" y1="130" x2="970" y2="130" stroke="#7f8c8d"/><line x1="60" y1="178" x2="970" y2="178" stroke="#27ae60"/>
+  </g>
+  <path d="M70,270 H130 L133,62 L138,83 H330 Q345,83 360,130 T390,178 Q405,178 420,130 T450,90 Q465,90 480,130 T510,170 Q525,170 540,130 T570,96 Q585,96 600,130 T630,164" stroke="#2c3e50" stroke-width="2.5" fill="none"/>
+  <path d="M390,178 L392,270 H460 L463,62 L468,83 H660 Q675,83 690,130 T720,178 L722,270 H800" stroke="#27ae60" stroke-width="2.5" fill="none"/>
+  <circle cx="390" cy="178" r="7" fill="none" stroke="#27ae60" stroke-width="3"/>
+  <circle cx="720" cy="178" r="7" fill="none" stroke="#27ae60" stroke-width="3"/>
+  <circle cx="450" cy="90" r="7" fill="none" stroke="#e74c3c" stroke-width="3"/>
+  <g font-size="12">
+    <text x="830" y="78" fill="#c0392b">Vin + Vor ≈ 415V（平台）</text>
+    <text x="830" y="125" fill="#7f8c8d">Vin ≈ 310V</text>
+    <text x="830" y="173" fill="#27ae60">Vin − Vor ≈ 205V（谷底）</text>
+    <text x="145" y="75">漏感尖峰</text>
+    <text x="180" y="105">放能（次级导通）</text>
+    <text x="280" y="215" fill="#27ae60" font-weight="bold">QR：在第 1 个谷底开通</text>
+    <text x="280" y="232" fill="#27ae60">开通损耗 ∝ 205²</text>
+    <text x="455" y="50" fill="#e74c3c">固定频率可能在这种高点开通</text>
+    <text x="470" y="66" fill="#e74c3c">（≈400V，损耗 ∝ 400²，约 4 倍）</text>
+    <text x="490" y="230" fill="#555">谐振周期由 Lp 和 Coss 决定</text>
+    <text x="70" y="300" fill="#555">（示意：Vor 按 20V 输出、匝比约 5:1 估算 ≈ 105V；颜色绿色的线为 QR 实际走法，灰色为如果继续等待的振铃）</text>
+  </g>
+</svg>
+<figcaption>开通瞬间 Coss 上的电荷会被 MOS 自己"短路"放掉，损耗 ½CossV²。在谷底开通，V 小了一半，损耗只剩约 1/4。低压输入（90V，母线 127V）时谷底接近 0V，几乎是零电压开通。</figcaption>
+</figure>
+<div class="key"><b>QR 的特点：</b>频率不固定。负载重时周期变长、频率变低；负载变轻时周期变短、频率升高。这和上一张图里的 RCC 自激电路很像（都是"放完就开"），只是 QR 多等了半个振铃周期到谷底。
+<br>· 为防止轻载频率过高，控制器会<b>跳谷底</b>：不在第 1 个，而在第 2、3、4……个谷底开通。
+<br>· 再轻就进入 <b>Burst 模式</b>：打一串脉冲，停一会儿，再打一串，降低空载功耗。</div>
+
+<h3>辅助绕组供电为什么要宽 VCC</h3>
+<p>辅助绕组电压跟着输出电压成比例变化。假设 20V 时辅助绕组给 VCC 约 20V，那么输出降到 3.3V 时，VCC 只剩约 3.3V，芯片就欠压关机了；反过来如果按 3.3V 设计，20V 时 VCC 会冲到 120V 以上。</p>
+<p>老方案要加线性稳压管或双辅助绕组来解决；现在的控制器直接把 VCC 工作范围做到 9~85V，省掉这些外围元件。</p>
+
+<!-- ============================================================ -->
+<h2 id="s4">4. 副边：同步整流（SR）</h2>
+<p>输出 3.25A 时：肖特基压降约 0.5V，损耗 0.5 × 3.25 ≈ 1.6W；MOSFET 导通电阻 3.7mΩ，损耗 3.25² × 0.0037 ≈ 0.04W。对一个 65W、体积 38mm 见方的充电器，这 1.5W 的差距就是"烫手"和"温热"的区别。</p>
+<p>难点在于：二极管会自己判断什么时候导通，MOS 不会。SR 控制器通过检测 MOS 的漏源电压 Vds 来"模仿二极管"：</p>
+<figure>
+<svg viewBox="0 0 1000 380">
+  <g font-size="13" font-weight="bold">
+    <text x="8" y="60">原边 GaN</text><text x="8" y="140">次级电流</text><text x="8" y="230">SR Vds</text><text x="8" y="330">SR 栅极</text>
+  </g>
+  <g stroke="#bbb" stroke-dasharray="4 4"><line x1="160" y1="20" x2="160" y2="360"/><line x1="168" y1="20" x2="168" y2="360"/><line x1="470" y1="20" x2="470" y2="360"/></g>
+  <path d="M90,75 H100 V40 H160 V75 H560 V40 H620 V75 H960" stroke="#e67e22" stroke-width="2.2" fill="none"/>
+  <path d="M90,160 H160 V100 L470,160 H620 V100 L960,150" stroke="#27ae60" stroke-width="2.2" fill="none"/>
+  <line x1="90" y1="240" x2="960" y2="240" stroke="#999" stroke-dasharray="3 3"/>
+  <path d="M90,190 H160 V262 H168 V252 L470,240 L476,225 L485,252 L494,228 L503,246 L512,234 L521,242 L530,238 L560,238 L560,190 H620 V262 H628 V252 L960,244" stroke="#2c3e50" stroke-width="2.2" fill="none"/>
+  <path d="M90,345 H168 V310 H468 V345 H628 V310 H960" stroke="#8e44ad" stroke-width="2.2" fill="none"/>
+  <g font-size="11">
+    <text x="105" y="185" fill="#555">原边导通：SR 承受正压</text>
+    <text x="172" y="278" fill="#c0392b">① 体二极管先导通，Vds ≈ −0.7V</text>
+    <text x="172" y="294" fill="#c0392b">控制器检测到 → 几十 ns 内打开 MOS</text>
+    <text x="200" y="232" fill="#2980b9">② Vds = −I×Rds（只有几十 mV）</text>
+    <text x="350" y="210" fill="#8e44ad">③ 电流快降到 0，Vds 接近 0 → 关断</text>
+    <text x="480" y="270" fill="#7f8c8d">④ DCM 振铃：控制器要识别，不能误开</text>
+    <text x="905" y="236" fill="#555">0V</text>
+    <text x="180" y="125" fill="#27ae60">次级放能电流</text>
+  </g>
+</svg>
+<figcaption>最危险的情况是 CCM：次级电流还没降到 0，原边就要开通了。SR 必须在原边开通前（纳秒级）关断，否则次级被短路，"直通"会炸管。所以拆解报告会强调 SR 芯片"关断延迟 10ns、4A 灌电流"。</figcaption>
+</figure>
+<p>SR MOS 可以放在次级地线一侧（低边，如上图，供电简单），也可以放在正端（高边，EMI 好，但 SR 芯片需要"自供电"技术）。拆解里的 MK91808H 就是高边自供电方案。</p>
+
+<!-- ============================================================ -->
+<h2 id="s5">5. 输出可调：协议芯片怎么改电压</h2>
+<p>LD7575 方案里，TL431 + 两个分压电阻把输出"焊死"在 5V。快充里，协议芯片内部有一个<b>可以用数字设定的基准电压</b>和误差放大器，直接驱动光耦。反馈原理完全一样，只是"目标值"可以改。</p>
+<figure>
+<svg viewBox="0 0 1000 250">
+  <g font-size="13" text-anchor="middle">
+    <rect x="10" y="20" width="170" height="55" rx="8" fill="#ebdef0" stroke="#8e44ad"/><text x="95" y="43">手机发 Request</text><text x="95" y="62">"我要 20V 3.25A"</text>
+    <rect x="205" y="20" width="185" height="55" rx="8" fill="#ebdef0" stroke="#8e44ad"/><text x="297" y="43">协议芯片把目标</text><text x="297" y="62">从 5V 改成 20V</text>
+    <rect x="415" y="20" width="170" height="55" rx="8" fill="#fef9e7" stroke="#d4ac0d"/><text x="500" y="43">实际 5V &lt; 目标</text><text x="500" y="62">→ 光耦电流 ↓</text>
+    <rect x="610" y="20" width="175" height="55" rx="8" fill="#fdebd0" stroke="#e67e22"/><text x="697" y="43">原边 FB ↑</text><text x="697" y="62">每周期送能 ↑</text>
+    <rect x="810" y="20" width="180" height="55" rx="8" fill="#d5f5e3" stroke="#27ae60"/><text x="900" y="43">Cout 充电</text><text x="900" y="62">VBUS 升到 20V</text>
+    <rect x="610" y="140" width="175" height="55" rx="8" fill="#d6eaf8" stroke="#2980b9"/><text x="697" y="163">辅助绕组电压 ×4</text><text x="697" y="182">宽 VCC 芯片照常工作</text>
+    <rect x="810" y="140" width="180" height="55" rx="8" fill="#ebdef0" stroke="#8e44ad"/><text x="900" y="163">到达 20V</text><text x="900" y="182">协议芯片发 PS_RDY</text>
+  </g>
+  <g stroke="#333" stroke-width="1.6" fill="none">
+    <line x1="180" y1="47" x2="203" y2="47" marker-end="url(#ak)"/><line x1="390" y1="47" x2="413" y2="47" marker-end="url(#ak)"/>
+    <line x1="585" y1="47" x2="608" y2="47" marker-end="url(#ak)"/><line x1="785" y1="47" x2="808" y2="47" marker-end="url(#ak)"/>
+    <line x1="900" y1="75" x2="900" y2="138" marker-end="url(#ak)"/><line x1="697" y1="75" x2="697" y2="138" marker-end="url(#ak)" stroke-dasharray="4 3"/>
+  </g>
+  <text x="10" y="230" font-size="12" fill="#555">降压（20V → 5V）更麻烦：原边只能"少送能"，不能把电抽回去。Cout 上的电要靠协议芯片的放电通路或负载泄放下来，所以协议芯片都带 VBUS 放电功能。</text>
+</svg>
+</figure>
+<p>协议芯片还同时做：</p>
+<ul>
+<li><b>恒流（CC）环路：</b>通过 Rsense 采样输出电流。PPS 模式下手机申请多少电流，充电器就把电流限制在多少（充电器进入恒流，电压自动往下掉）。</li>
+<li><b>跟随电压的保护：</b>5V 档和 20V 档的过压门槛不同，协议芯片按当前档位动态调整 OVP。</li>
+<li><b>VBUS MOS 控制：</b>没插设备、出故障、拔出时关断 VBUS。</li>
+</ul>
+
+<!-- ============================================================ -->
+<h2 id="s6">6. Type-C 接口：CC 引脚和插入检测</h2>
+<p>USB-C 接口里和充电相关的引脚：<b>VBUS</b>（电源）、<b>GND</b>、<b>CC1 / CC2</b>（配置通道，PD 通信也走这里）、<b>D+ / D−</b>（USB 2.0 数据线，私有快充协议借用它们）。</p>
+<figure>
+<svg viewBox="0 0 1000 300">
+  <rect x="15" y="30" width="300" height="220" rx="8" fill="#fdebd0" stroke="#e67e22"/><text x="25" y="52" font-size="14" font-weight="bold" fill="#ca6f1e">充电器（Source，供电方）</text>
+  <rect x="355" y="70" width="270" height="160" rx="8" fill="#eaeded" stroke="#7f8c8d"/><text x="365" y="92" font-size="14" font-weight="bold" fill="#555">C-C 线缆</text>
+  <rect x="665" y="30" width="320" height="220" rx="8" fill="#d6eaf8" stroke="#2980b9"/><text x="675" y="52" font-size="14" font-weight="bold" fill="#2471a3">手机（Sink，受电方）</text>
+  <g stroke="#333" stroke-width="2" fill="none">
+    <circle cx="60" cy="150" r="18"/><path d="M60,132 V75 H130 V190"/><path d="M60,168 V230"/>
+    <path d="M130,120 H160"/><rect x="160" y="113" width="60" height="14"/><path d="M220,120 H315"/>
+    <path d="M130,190 H160"/><rect x="160" y="183" width="60" height="14"/><path d="M220,190 H315"/>
+    <path d="M315,120 H665"/>
+    <path d="M315,190 H470 V205"/><rect x="463" y="205" width="14" height="20" fill="#f9e79f"/>
+    <path d="M665,120 H860 V140"/><rect x="853" y="140" width="14" height="45"/><path d="M860,185 V235"/>
+    <path d="M665,190 H740 V195"/><rect x="733" y="195" width="14" height="35"/><path d="M740,230 V240"/>
+  </g>
+  <g font-size="12">
+    <text x="53" y="155">5V</text>
+    <text x="165" y="108">Rp（56k/22k/10k）</text><text x="165" y="215">Rp</text>
+    <text x="282" y="140" fill="#ca6f1e">CC1</text><text x="282" y="210" fill="#ca6f1e">CC2</text>
+    <text x="400" y="113" fill="#c0392b" font-weight="bold">线缆里只有一根 CC 线</text>
+    <text x="365" y="178">另一个位置 = VCONN</text>
+    <text x="485" y="220">e-marker 芯片（Ra）</text><text x="485" y="236" font-size="11">5A 线才有，告诉充电器线能扛多大电流</text>
+    <text x="872" y="165">Rd 5.1k</text><text x="752" y="218">Rd 5.1k</text>
+    <text x="700" y="113" fill="#2471a3">CC1</text><text x="700" y="183" fill="#2471a3">CC2</text>
+    <text x="25" y="275" fill="#555">充电器测哪根 CC 上出现了 Rd（电压被拉低）→ 知道插上了设备、知道正反方向，然后才打开 VBUS MOS 输出 5V</text>
+  </g>
+</svg>
+</figure>
+<table>
+<tr><th>充电器的 Rp（上拉到 5V）</th><th>告诉手机：不通信也能用的电流</th><th>CC 上的电压（Rd = 5.1k）</th></tr>
+<tr><td>56kΩ</td><td>默认 USB（500mA / 900mA）</td><td>约 0.42V</td></tr>
+<tr><td>22kΩ</td><td>1.5A</td><td>约 0.94V</td></tr>
+<tr><td>10kΩ</td><td>3.0A</td><td>约 1.69V</td></tr>
+</table>
+<div class="key">
+· 这是一个最简单的"电阻分压通信"，不需要任何协议，5V 下最多 15W。<br>
+· 想要更高电压，就必须在 CC 线上跑 USB PD 协议。<br>
+· <b>为什么要 VBUS MOS：</b>Type-C 两头一样，如果充电器不插设备也一直输出，两台充电器用 C-C 线对插就会"打架"；20V 直接出现在接口上也不安全。所以规范要求：检测到 Rd 之前，VBUS 必须是 0V。<br>
+· 不带 e-marker 的线最多 3A；要 5A（100W 以上）必须是带 e-marker 的线，充电器会给 VCONN 供电，并通过 PD 读取线缆能力。
+</div>
+
+<!-- ============================================================ -->
+<h2 id="s7">7. USB PD 协议：握手流程与物理层</h2>
+<h3>握手流程（以 20V 3.25A 为例）</h3>
+<figure>
+<svg viewBox="0 0 1000 560">
+  <rect x="160" y="15" width="180" height="40" rx="6" fill="#fdebd0" stroke="#e67e22"/><text x="250" y="41" font-size="14" text-anchor="middle" font-weight="bold">充电器（Source）</text>
+  <rect x="660" y="15" width="180" height="40" rx="6" fill="#d6eaf8" stroke="#2980b9"/><text x="750" y="41" font-size="14" text-anchor="middle" font-weight="bold">手机（Sink）</text>
+  <line x1="250" y1="55" x2="250" y2="545" stroke="#e67e22" stroke-width="2" stroke-dasharray="6 4"/>
+  <line x1="750" y1="55" x2="750" y2="545" stroke="#2980b9" stroke-width="2" stroke-dasharray="6 4"/>
+  <g font-size="13">
+    <rect x="40" y="70" width="420" height="34" rx="4" fill="#fef9e7" stroke="#d4ac0d"/><text x="50" y="92">检测到 CC 上的 Rd → 打开 VBUS MOS，输出 5V</text>
+    <line x1="252" y1="130" x2="746" y2="130" stroke="#e67e22" stroke-width="2.5" marker-end="url(#ak)"/>
+    <text x="270" y="122" font-weight="bold">① Source_Capabilities（能力列表 PDO）</text>
+    <text x="270" y="148" font-size="11" fill="#555">5V3A / 9V3A / 12V3A / 15V3A / 20V3.25A / PPS 5~11V 5A / AVS 9~20V 3A</text>
+    <line x1="748" y1="170" x2="254" y2="170" stroke="#999" stroke-width="1.5" marker-end="url(#agr)"/><text x="560" y="165" font-size="11" fill="#999">GoodCRC</text>
+    <line x1="748" y1="210" x2="254" y2="210" stroke="#2980b9" stroke-width="2.5" marker-end="url(#ak)"/>
+    <text x="410" y="202" font-weight="bold">② Request（选第 5 项：20V，3.25A）</text>
+    <line x1="252" y1="240" x2="746" y2="240" stroke="#999" stroke-width="1.5" marker-end="url(#agr)"/><text x="270" y="235" font-size="11" fill="#999">GoodCRC</text>
+    <line x1="252" y1="280" x2="746" y2="280" stroke="#e67e22" stroke-width="2.5" marker-end="url(#ak)"/>
+    <text x="270" y="272" font-weight="bold">③ Accept（同意）</text>
+    <line x1="748" y1="310" x2="254" y2="310" stroke="#999" stroke-width="1.5" marker-end="url(#agr)"/><text x="560" y="305" font-size="11" fill="#999">GoodCRC</text>
+    <rect x="40" y="330" width="420" height="58" rx="4" fill="#d5f5e3" stroke="#27ae60"/>
+    <text x="50" y="352">协议芯片改目标 → 光耦 → 原边多送能</text><text x="50" y="374">VBUS 5V 平滑升到 20V（第 5 节）</text>
+    <rect x="540" y="330" width="420" height="58" rx="4" fill="#eaf2f8" stroke="#2980b9"/>
+    <text x="550" y="352">手机等待，这段时间只能取小电流</text><text x="550" y="374">（等 PS_RDY 才能加大电流）</text>
+    <line x1="252" y1="420" x2="746" y2="420" stroke="#e67e22" stroke-width="2.5" marker-end="url(#ak)"/>
+    <text x="270" y="412" font-weight="bold">④ PS_RDY（电源已就绪）</text>
+    <line x1="748" y1="450" x2="254" y2="450" stroke="#999" stroke-width="1.5" marker-end="url(#agr)"/><text x="560" y="445" font-size="11" fill="#999">GoodCRC</text>
+    <rect x="160" y="470" width="680" height="34" rx="4" fill="#fadbd8" stroke="#c0392b"/><text x="500" y="492" text-anchor="middle" font-weight="bold">合约（Contract）建立：20V，手机开始取最多 3.25A</text>
+    <text x="160" y="532" font-size="12" fill="#555">PPS / AVS 模式下手机要定期重发 Request 保活（PPS 规定不超过 10 秒一次），否则充电器认为通信中断，回到 5V。</text>
+  </g>
+</svg>
+<figcaption>每条消息收到后，对方都要先回一个 GoodCRC（"我收到了，校验正确"），没收到 GoodCRC 就重发。</figcaption>
+</figure>
+
+<h3>物理层：CC 线上怎么传 0 和 1</h3>
+<p>PD 消息用 <b>BMC 编码</b>（双相标记码）在 CC 线上传输，速率约 300kbps，电压摆幅约 1.1V，叠加在 CC 原本的直流电平上。</p>
+<figure>
+<svg viewBox="0 0 900 200">
+  <g stroke="#ddd" stroke-dasharray="3 3">
+    <line x1="80" y1="45" x2="80" y2="150"/><line x1="170" y1="45" x2="170" y2="150"/><line x1="260" y1="45" x2="260" y2="150"/><line x1="350" y1="45" x2="350" y2="150"/><line x1="440" y1="45" x2="440" y2="150"/><line x1="530" y1="45" x2="530" y2="150"/><line x1="620" y1="45" x2="620" y2="150"/><line x1="710" y1="45" x2="710" y2="150"/><line x1="800" y1="45" x2="800" y2="150"/>
+  </g>
+  <g font-size="16" font-weight="bold" text-anchor="middle">
+    <text x="125" y="38" fill="#c0392b">1</text><text x="215" y="38" fill="#2980b9">0</text><text x="305" y="38" fill="#c0392b">1</text><text x="395" y="38" fill="#c0392b">1</text><text x="485" y="38" fill="#2980b9">0</text><text x="575" y="38" fill="#2980b9">0</text><text x="665" y="38" fill="#c0392b">1</text><text x="755" y="38" fill="#2980b9">0</text>
+  </g>
+  <path d="M40,130 H80 V60 H125 V130 H170 V60 H260 V130 H305 V60 H350 V130 H395 V60 H440 V130 H530 V60 H620 V130 H665 V60 H710 V130 H800 H840" stroke="#2c3e50" stroke-width="2.5" fill="none"/>
+  <text x="40" y="180" font-size="12" fill="#555">规则：每一位开头必定跳变；"1" 在中间再多跳一次，"0" 中间不跳。好处是没有直流分量、自带时钟，一根线就能可靠通信。</text>
+</svg>
+</figure>
+<p>一条 PD 消息的结构：前导码（交替 0/1，让接收方同步时钟）→ SOP 起始符 → 消息头（类型、消息 ID、数据对象数量）→ 0~7 个 32 位数据对象（如 PDO、RDO）→ CRC-32 → EOP。数据还会先经过 4b5b 编码。</p>
+
+<!-- ============================================================ -->
+<h2 id="s8">8. PDO 种类：固定、PPS、AVS、EPR</h2>
+<figure>
+<svg viewBox="0 0 1000 330">
+  <line x1="150" y1="280" x2="960" y2="280" stroke="#333" marker-end="url(#ak)"/>
+  <g font-size="11" text-anchor="middle" fill="#555">
+    <text x="150" y="298">0</text><text x="310" y="298">10</text><text x="470" y="298">20</text><text x="630" y="298">30</text><text x="790" y="298">40</text><text x="950" y="298">50V</text>
+  </g>
+  <g stroke="#ddd"><line x1="310" y1="30" x2="310" y2="280"/><line x1="470" y1="30" x2="470" y2="280"/><line x1="630" y1="30" x2="630" y2="280"/><line x1="790" y1="30" x2="790" y2="280"/></g>
+  <line x1="470" y1="20" x2="470" y2="280" stroke="#e74c3c" stroke-width="2" stroke-dasharray="5 4"/>
+  <text x="476" y="25" font-size="11" fill="#e74c3c">SPR（≤100W）| EPR（≤240W）</text>
+  <g font-size="13" font-weight="bold">
+    <text x="10" y="60">固定电压</text><text x="10" y="110">PPS</text><text x="10" y="160">SPR AVS</text><text x="10" y="210">EPR 固定</text><text x="10" y="260">EPR AVS</text>
+  </g>
+  <g fill="#2980b9"><circle cx="230" cy="55" r="7"/><circle cx="294" cy="55" r="7"/><circle cx="342" cy="55" r="7"/><circle cx="390" cy="55" r="7"/><circle cx="470" cy="55" r="7"/></g>
+  <g font-size="10" text-anchor="middle"><text x="230" y="78">5</text><text x="294" y="78">9</text><text x="342" y="78">12</text><text x="390" y="78">15</text><text x="470" y="78">20</text></g>
+  <rect x="203" y="98" width="283" height="18" rx="4" fill="#27ae60" opacity="0.85"/><text x="500" y="112" font-size="12">约 3.3/5V ~ 21V，步进 20mV / 50mA，充电器限流（恒流）</text>
+  <rect x="294" y="148" width="176" height="18" rx="4" fill="#e67e22" opacity="0.85"/><text x="480" y="162" font-size="12">9~20V，步进 100mV（PD 3.2 新增）</text>
+  <g fill="#8e44ad"><circle cx="598" cy="205" r="7"/><circle cx="726" cy="205" r="7"/><circle cx="918" cy="205" r="7"/></g>
+  <g font-size="10" text-anchor="middle"><text x="598" y="228">28</text><text x="726" y="228">36</text><text x="918" y="228">48</text></g>
+  <rect x="390" y="248" width="528" height="18" rx="4" fill="#c0392b" opacity="0.8"/><text x="400" y="262" font-size="12" fill="#fff">15~48V，100mV 步进；EPR 需要 5A e-marker 线，最高 240W</text>
+</svg>
+<figcaption>充电器在 Source_Capabilities 里把自己支持的各项都列出来，手机挑一项 Request。</figcaption>
+</figure>
+<table>
+<tr><th>类型</th><th>是什么</th><th>典型用途</th></tr>
+<tr><td>固定 PDO</td><td>几个固定电压档（PD 2.0 起）</td><td>笔记本、平板、大多数手机</td></tr>
+<tr><td>PPS（可编程电源）</td><td>PD 3.0 加入。电压按 20mV 精细调，电流可设上限，超了充电器自动恒流</td><td>手机"直充"：充电器直接按电池需要的电压电流输出，手机内部只做一个高效率的开关（电荷泵），发热从手机转移到充电器。三星 25W/45W 超级快充就靠它</td></tr>
+<tr><td>SPR AVS</td><td>PD 3.2 加入。9~20V 按 100mV 调，不要求 PPS 那样严格的限流</td><td>比固定档更省电，又比 PPS 容易实现；新款充电器开始标注"AVS"</td></tr>
+<tr><td>EPR</td><td>PD 3.1 加入。28/36/48V 固定档 + 15~48V AVS，需要先进入 EPR 模式</td><td>140W、240W 笔记本充电器</td></tr>
+</table>
+<div class="key"><b>为什么快充都是"提电压"：</b>功率 P = V × I。接口和线缆的电流是有上限的（普通线 3A，e-marker 线 5A），线越细、电流越大，发热 I²R 越严重。所以 5V3A 只有 15W，20V3.25A 就到了 65W，48V5A 能到 240W。</div>
+
+<!-- ============================================================ -->
+<h2 id="s9">9. D+/D− 上的私有协议（QC、华为、UFCS 等）</h2>
+<p>PD 走 CC 线，但很多老手机或国产手机的快充协议出现得更早，借用 USB 2.0 的 D+/D− 两根数据线传信号。所以一颗协议芯片往往"十几种协议全兼容"，拆解里的 IP2723T 就支持 PD、PPS、QC2/3/4+、FCP、SCP、AFC、Apple 2.4A、BC1.2 等。</p>
+<table>
+<tr><th>协议</th><th>来自</th><th>原理（简化）</th></tr>
+<tr><td>BC1.2 DCP</td><td>USB 标准</td><td>充电器把 D+ 和 D− 短接，手机检测到就知道是"专用充电口"，可以取到 1.5A</td></tr>
+<tr><td>Apple 2.4A</td><td>苹果</td><td>D+、D− 上用分压电阻给出特定电压（如都约 2.7V）表示能提供 2.4A</td></tr>
+<tr><td>QC 2.0</td><td>高通</td><td>先过 BC1.2 握手，然后手机在 D+/D− 上加不同电压组合（0.6V / 3.3V）选择 9V、12V 等固定档</td></tr>
+<tr><td>QC 3.0</td><td>高通</td><td>D+ 0.6V、D− 3.3V 进入连续模式，之后每个短脉冲让电压升或降 200mV</td></tr>
+<tr><td>FCP / SCP</td><td>华为</td><td>D+/D− 上跑数字通信，SCP 是低压大电流直充（如 10V4A、5V5A）</td></tr>
+<tr><td>AFC</td><td>三星</td><td>D− 上通信，9V 档</td></tr>
+<tr><td>UFCS 融合快充</td><td>国内统一标准</td><td>D+/D− 上跑数字通信，目标是让各品牌手机和充电器互通</td></tr>
+</table>
+<p>手机一插上，协议芯片会同时"听"CC 线和 D+/D− 线，哪边先握手成功就按哪个协议输出。</p>
+
+<!-- ============================================================ -->
+<h2 id="s10">10. 完整流程：从插上到 20V 输出</h2>
+<figure>
+<svg viewBox="0 0 1000 380">
+  <line x1="70" y1="300" x2="980" y2="300" stroke="#333" marker-end="url(#ak)"/><line x1="70" y1="300" x2="70" y2="40" stroke="#333" marker-end="url(#ak)"/>
+  <text x="20" y="50" font-size="12">VBUS</text><text x="960" y="320" font-size="12">t</text>
+  <g stroke-dasharray="4 3" stroke="#ccc"><line x1="70" y1="260" x2="970" y2="260"/><line x1="70" y1="100" x2="970" y2="100"/></g>
+  <text x="35" y="264" font-size="11">5V</text><text x="30" y="104" font-size="11">20V</text>
+  <path d="M70,300 H210 L218,260 H420 Q460,260 500,100 H820 L830,100 Q860,100 880,300 H970" stroke="#2c3e50" stroke-width="3" fill="none"/>
+  <g stroke="#999" stroke-dasharray="3 3"><line x1="140" y1="40" x2="140" y2="300"/><line x1="214" y1="40" x2="214" y2="300"/><line x1="280" y1="40" x2="280" y2="300"/><line x1="330" y1="40" x2="330" y2="300"/><line x1="380" y1="40" x2="380" y2="300"/><line x1="510" y1="40" x2="510" y2="300"/><line x1="825" y1="40" x2="825" y2="300"/></g>
+  <g font-size="11">
+    <text x="100" y="335">① 插上</text><text x="80" y="351" fill="#555">充电器测到 Rd</text>
+    <text x="180" y="245">② 5V</text><text x="185" y="335">VBUS MOS 开</text>
+    <text x="250" y="60" fill="#e67e22">③ Source_Cap</text>
+    <text x="305" y="78" fill="#2980b9">④ Request</text>
+    <text x="355" y="96" fill="#e67e22">⑤ Accept</text>
+    <text x="300" y="200" fill="#27ae60">⑥ 原边多送能</text><text x="300" y="215" fill="#27ae60">电压平滑上升 →</text>
+    <text x="515" y="60" fill="#e67e22">⑦ PS_RDY</text>
+    <text x="560" y="90" fill="#c0392b" font-weight="bold">⑧ 手机取 3.25A，65W 充电</text>
+    <text x="560" y="140" fill="#555">期间：协议芯片监测电流/温度</text><text x="560" y="156" fill="#555">手机可随时重新 Request 降档</text>
+    <text x="835" y="60">⑨ 拔出</text><text x="835" y="76" fill="#555">VBUS MOS 关</text><text x="835" y="92" fill="#555">放电到 0V</text>
+  </g>
+  <text x="70" y="372" font-size="12" fill="#555">（示意，时间比例不准确。整个协商一般在 1 秒内完成，所以插上后手机会先短暂显示"普通充电"，再切换成"快充"）</text>
+</svg>
+</figure>
+<ol>
+<li><b>插上之前：</b>原边已经在工作（输出端 Cout 上是 5V 左右），但 VBUS MOS 关着，接口上是 0V。</li>
+<li><b>插入检测：</b>协议芯片看到 CC 上的 Rd，确认是受电设备、判断正反面，打开 VBUS MOS，输出 5V。</li>
+<li><b>PD 握手：</b>发能力列表 → 手机请求 → Accept。</li>
+<li><b>调压：</b>协议芯片改目标电压，经光耦让原边 QR 控制器多送能，VBUS 升到 20V。辅助绕组电压跟着升高，宽 VCC 芯片照常工作。</li>
+<li><b>PS_RDY：</b>通知手机电压已就绪，手机开始取大电流。</li>
+<li><b>运行中：</b>原边 QR + GaN 高频开关；副边 SR 同步整流；协议芯片做恒压/恒流、过压过流、温度保护。手机电量高了会重新 Request 降电压或降电流。</li>
+<li><b>拔出：</b>CC 上的 Rd 消失，协议芯片关断 VBUS MOS，并把输出放电回 5V，等待下一次插入。</li>
+</ol>
+
+<!-- ============================================================ -->
+<h2 id="s11">11. 更大功率：PFC、有源钳位</h2>
+<table>
+<tr><th>功率段</th><th>常见架构</th><th>说明</th></tr>
+<tr><td>20~65W</td><td>QR 反激 + GaN + SR（本文方案）</td><td>手机、平板、轻薄本充电器的主流</td></tr>
+<tr><td>65~100W</td><td>有源钳位反激（ACF）或 QR 反激</td><td>用一个额外的开关管代替 RCD，把漏感能量回收，还能实现零电压开通（ZVS）。例如 PI 的 InnoSwitch4-CZ + ClampZero、安森美 NCP1568</td></tr>
+<tr><td>&gt;75W</td><td>前级 PFC + 后级反激/ACF/LLC</td><td>按 IEC 61000-3-2 谐波标准，75W 以上的设备要控制输入电流谐波，所以要加功率因数校正（PFC）。PFC 本身也是一个升压开关电源，也常用 GaN</td></tr>
+<tr><td>140~240W</td><td>PFC + LLC / AHB（非对称半桥），PD 3.1 EPR</td><td>输出 28V/36V/48V，需要 5A e-marker 线</td></tr>
+</table>
+
+<!-- ============================================================ -->
+<h2 id="s12">12. 问答速查</h2>
+<div class="qa"><b class="q">Q：氮化镓快充和普通充电器的拓扑一样吗？</b><br>一样，都是隔离反激。区别在开关管（GaN）、开通方式（谷底开通）、整流（同步整流）、输出可调和协议通信。</div>
+<div class="qa"><b class="q">Q：氮化镓好在哪？</b><br>Qg、Coss 小，没有反向恢复，开关损耗低，可以跑更高频率，变压器和电容都能变小。缺点是没有雪崩耐量、驱动要求高，所以一般和控制器做在一颗芯片里。</div>
+<div class="qa"><b class="q">Q：QR 和 LD7575 的固定频率有什么区别？</b><br>QR 等漏极振铃到谷底再开通，开通损耗约降到 1/4；频率随负载变化，轻载跳谷底，再轻进 Burst。</div>
+<div class="qa"><b class="q">Q：为什么要同步整流？</b><br>3.25A 时肖特基约损耗 1.6W，MOS 只有约 0.04W。SR 控制器通过检测 Vds 模拟二极管的开关时机。</div>
+<div class="qa"><b class="q">Q：输出电压怎么变？</b><br>协议芯片里的可调基准改变目标值，通过光耦让原边多送或少送能量，和 TL431 稳压是同一个闭环原理。</div>
+<div class="qa"><b class="q">Q：为什么不插手机时接口上量不到电压？</b><br>Type-C 规定检测到 Rd 之前 VBUS 必须为 0V，VBUS MOS 是关着的。</div>
+<div class="qa"><b class="q">Q：PD 握手的四步？</b><br>Source_Capabilities → Request → Accept → PS_RDY，每条后面跟一个 GoodCRC。</div>
+<div class="qa"><b class="q">Q：PPS 和固定电压有什么区别？</b><br>PPS 电压 20mV 步进、电流可限，充电器能直接按电池需要输出（直充），手机发热小；手机要至少 10 秒发一次 Request 保活。</div>
+<div class="qa"><b class="q">Q：为什么 100W 以上要 5A 线？</b><br>20V × 3A = 60W，20V × 5A = 100W。普通线最多 3A，5A 需要线里有 e-marker 芯片告诉充电器"我能扛"。</div>
+<div class="qa"><b class="q">Q：一个充电器怎么同时支持 PD 和 QC？</b><br>PD 走 CC 线，QC/FCP/SCP/UFCS 等走 D+/D−。协议芯片同时监听两边，哪个先握手成功就用哪个。</div>
+
+<div class="warn"><b>安全提醒：</b>快充的原边同样有 310V 以上的高压，GaN 充电器体积小、元件密，拆机后电容上的电会存很久。初次级之间靠绝缘距离和 Y 电容保证安全，自己改装（比如去掉隔离、改 Y 电容）可能导致触电。</div>
+
+</body>
+</html>
