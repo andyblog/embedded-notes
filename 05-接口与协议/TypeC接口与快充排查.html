@@ -116,6 +116,7 @@
 <!-- ============================================================ -->
 <h2 id="s2">2. 24 个触点，为什么正反都能插</h2>
 <p>插座中间有一片"小舌头"，上下两面各 12 个触点，一共 24 个。从外往里依次是：GND、高速差分线、VBUS、CC / SBU、中间的 USB 2.0 D+ / D−。</p>
+<div class="warn"><b>注意：下面这张图和表都是母座（插座，设备上的口），从插口正面看过去。CC1 / CC2 也是母座的叫法。线头（公头）正看时左右是镜像的，第 5 脚也不叫 CC1/CC2，拿这张图去对线头会对反。线头的线序见 <a href="#s2-1">2.1</a>。</b></div>
 <figure>
 <svg viewBox="0 0 1000 300">
   <rect x="40" y="40" width="920" height="190" rx="95" fill="#d5d8dc" stroke="#555" stroke-width="3"/>
@@ -158,7 +159,7 @@
     <rect x="240" y="275" width="14" height="14" fill="#8e44ad"/><text x="260" y="287">SBU1/SBU2：边带（DP 辅助通道、模拟耳机麦克风等）</text>
   </g>
 </svg>
-<figcaption>插头转 180° 后，A 排对上 B 排的位置。GND、VBUS、D+/D− 两边相同；高速线、CC、SBU 不同，靠 CC 判断方向后由芯片切换。</figcaption>
+<figcaption><b>母座正视图。</b>插头转 180° 后，A 排对上 B 排的位置。GND、VBUS、D+/D− 两边相同；高速线、CC、SBU 不同，靠 CC 判断方向后由芯片切换。</figcaption>
 </figure>
 <table>
 <tr><th width="130">触点</th><th>作用</th><th width="270">对称吗</th></tr>
@@ -169,6 +170,68 @@
 <tr><td>SBU1 / SBU2</td><td>DP 的 AUX 辅助通道（读显示器型号、分辨率）、模拟耳机的麦克风/地</td><td>按方向切换</td></tr>
 </table>
 <div class="key">视频里的说法：<b>"CC 和 SBU 这两个口是最要紧的两个脚，后面讲的供电、识别、出画面全靠它。"</b></div>
+
+<h3 id="s2-1">2.1 对着线头（公头）看的线序</h3>
+<p>线头里没有舌片，触点长在金属壳的上下内壁上，插进去时夹住母座的舌片。插入时公头 A1 对母座 A1，两者是<b>面对面</b>的，所以正对着线头看，A 排变成<b>从左到右 A12 → A1</b>，B 排是 <b>B1 → B12</b>，和上面母座图左右相反。</p>
+<figure>
+<svg viewBox="0 0 1000 300">
+  <rect x="40" y="40" width="920" height="190" rx="95" fill="#bdc3c7" stroke="#555" stroke-width="3"/>
+  <rect x="70" y="52" width="860" height="166" rx="40" fill="#2c3e50"/>
+  <g font-size="11" text-anchor="middle" font-weight="bold">
+    <rect x="95" y="60" width="60" height="44" rx="4" fill="#7f8c8d"/><text x="125" y="78" fill="#fff">A12</text><text x="125" y="96" fill="#fff">GND</text>
+    <rect x="163" y="60" width="60" height="44" rx="4" fill="#2980b9"/><text x="193" y="78" fill="#fff">A11</text><text x="193" y="96" fill="#fff">RX2+</text>
+    <rect x="231" y="60" width="60" height="44" rx="4" fill="#2980b9"/><text x="261" y="78" fill="#fff">A10</text><text x="261" y="96" fill="#fff">RX2−</text>
+    <rect x="299" y="60" width="60" height="44" rx="4" fill="#e67e22"/><text x="329" y="78" fill="#fff">A9</text><text x="329" y="96" fill="#fff">VBUS</text>
+    <rect x="367" y="60" width="60" height="44" rx="4" fill="#8e44ad"/><text x="397" y="78" fill="#fff">A8</text><text x="397" y="96" fill="#fff">SBU1</text>
+    <rect x="435" y="60" width="60" height="44" rx="4" fill="#27ae60"/><text x="465" y="78" fill="#fff">A7</text><text x="465" y="96" fill="#fff">D−</text>
+    <rect x="503" y="60" width="60" height="44" rx="4" fill="#27ae60"/><text x="533" y="78" fill="#fff">A6</text><text x="533" y="96" fill="#fff">D+</text>
+    <rect x="571" y="60" width="60" height="44" rx="4" fill="#c0392b"/><text x="601" y="78" fill="#fff">A5</text><text x="601" y="96" fill="#fff">CC</text>
+    <rect x="639" y="60" width="60" height="44" rx="4" fill="#e67e22"/><text x="669" y="78" fill="#fff">A4</text><text x="669" y="96" fill="#fff">VBUS</text>
+    <rect x="707" y="60" width="60" height="44" rx="4" fill="#2980b9"/><text x="737" y="78" fill="#fff">A3</text><text x="737" y="96" fill="#fff">TX1−</text>
+    <rect x="775" y="60" width="60" height="44" rx="4" fill="#2980b9"/><text x="805" y="78" fill="#fff">A2</text><text x="805" y="96" fill="#fff">TX1+</text>
+    <rect x="843" y="60" width="60" height="44" rx="4" fill="#7f8c8d"/><text x="873" y="78" fill="#fff">A1</text><text x="873" y="96" fill="#fff">GND</text>
+
+    <rect x="95" y="166" width="60" height="44" rx="4" fill="#7f8c8d"/><text x="125" y="184" fill="#fff">B1</text><text x="125" y="202" fill="#fff">GND</text>
+    <rect x="163" y="166" width="60" height="44" rx="4" fill="#2980b9"/><text x="193" y="184" fill="#fff">B2</text><text x="193" y="202" fill="#fff">TX2+</text>
+    <rect x="231" y="166" width="60" height="44" rx="4" fill="#2980b9"/><text x="261" y="184" fill="#fff">B3</text><text x="261" y="202" fill="#fff">TX2−</text>
+    <rect x="299" y="166" width="60" height="44" rx="4" fill="#e67e22"/><text x="329" y="184" fill="#fff">B4</text><text x="329" y="202" fill="#fff">VBUS</text>
+    <rect x="367" y="166" width="60" height="44" rx="4" fill="#f5b7b1" stroke="#c0392b" stroke-width="2"/><text x="397" y="184" fill="#922b21">B5</text><text x="397" y="202" fill="#922b21">VCONN</text>
+    <rect x="435" y="166" width="60" height="44" rx="4" fill="#2c3e50" stroke="#27ae60" stroke-width="2" stroke-dasharray="4 3"/><text x="465" y="184" fill="#7dcea0">B6</text><text x="465" y="202" fill="#7dcea0">(D+)</text>
+    <rect x="503" y="166" width="60" height="44" rx="4" fill="#2c3e50" stroke="#27ae60" stroke-width="2" stroke-dasharray="4 3"/><text x="533" y="184" fill="#7dcea0">B7</text><text x="533" y="202" fill="#7dcea0">(D−)</text>
+    <rect x="571" y="166" width="60" height="44" rx="4" fill="#8e44ad"/><text x="601" y="184" fill="#fff">B8</text><text x="601" y="202" fill="#fff">SBU2</text>
+    <rect x="639" y="166" width="60" height="44" rx="4" fill="#e67e22"/><text x="669" y="184" fill="#fff">B9</text><text x="669" y="202" fill="#fff">VBUS</text>
+    <rect x="707" y="166" width="60" height="44" rx="4" fill="#2980b9"/><text x="737" y="184" fill="#fff">B10</text><text x="737" y="202" fill="#fff">RX1−</text>
+    <rect x="775" y="166" width="60" height="44" rx="4" fill="#2980b9"/><text x="805" y="184" fill="#fff">B11</text><text x="805" y="202" fill="#fff">RX1+</text>
+    <rect x="843" y="166" width="60" height="44" rx="4" fill="#7f8c8d"/><text x="873" y="184" fill="#fff">B12</text><text x="873" y="202" fill="#fff">GND</text>
+  </g>
+  <text x="500" y="140" font-size="12" fill="#fff" text-anchor="middle">中间是空腔（没有舌片），母座的舌片插进这里；上排触点在上内壁，下排在下内壁</text>
+  <g font-size="12">
+    <rect x="60" y="250" width="14" height="14" fill="#c0392b"/><text x="80" y="262">A5 CC：线里唯一一根 CC，直通另一头 A5</text>
+    <rect x="400" y="250" width="14" height="14" fill="#f5b7b1" stroke="#c0392b"/><text x="420" y="262">B5 VCONN：给线里的 e-marker 供电，普通线可以不接</text>
+    <rect x="60" y="275" width="14" height="14" fill="#2c3e50" stroke="#27ae60" stroke-dasharray="3 2"/><text x="80" y="287">B6/B7：线里只有一对 D+/D−（走 A6/A7），这两个位置按规范不接，有的线头仍然做了触点</text>
+  </g>
+</svg>
+<figcaption><b>公头（线头）正视图</b>，按全功能线画。和母座图逐格对比：左右镜像，A5 叫 CC，B5 叫 VCONN。线头上下对称，哪一排是 A 排取决于你怎么拿，<b>带 CC 的那一排就是 A 排</b>。</figcaption>
+</figure>
+<table>
+<tr><th width="150">线头触点</th><th>作用</th><th width="190">全功能线</th><th width="230">USB 2.0 充电线（如 iPhone 15 原装 C-C 线）</th></tr>
+<tr><td>A1/A12、B1/B12</td><td>GND</td><td>有</td><td>有</td></tr>
+<tr><td>A4/A9、B4/B9</td><td>VBUS</td><td>有</td><td>有</td></tr>
+<tr><td>A5 CC</td><td>插哪面就接到母座 CC1 或 CC2；线缆本身不带 Rp/Rd</td><td>有</td><td>有（必须有，没有 CC 充电器不会开 5V）</td></tr>
+<tr><td>B5 VCONN</td><td>给 e-marker 供电，e-marker 的 Ra 接在这里</td><td>带 e-marker 时接</td><td>可以不接；有触点不代表接了线，要两头量通断</td></tr>
+<tr><td>A6/A7 D+/D−</td><td>USB 2.0</td><td>有</td><td>有</td></tr>
+<tr><td>B6/B7</td><td>线里没有第二对 D+/D−</td><td>不接</td><td>不接（有的线头有空触点）</td></tr>
+<tr><td>A2/A3、B2/B3、A10/A11、B10/B11</td><td>高速 TX/RX</td><td>有</td><td>没有</td></tr>
+<tr><td>A8/B8 SBU</td><td>DP AUX 等</td><td>有</td><td>没有</td></tr>
+</table>
+<div class="case">
+<h3>实拍对照：iPhone 15 原装 C-C 线</h3>
+<p>正对线头，从左往右数（每排 12 格）：</p>
+<p>上排：第 1、4、6、7、8、9、12 格有触点 → 按 A12→A1 读，就是 <b>A12 GND、A9 VBUS、A7 D−、A6 D+、A5 CC、A4 VBUS、A1 GND</b>。左数第 5 格空着，它是 A8 SBU1，不是 CC。</p>
+<p>下排：第 1、4、5、6、7、9、12 格有触点 → 按 B1→B12 读，就是 <b>B1、B4、B5、B6、B7、B9、B12</b>。B5、B6、B7 有触点，但按规范线里不接 B6/B7，B5 是否接线要实测。</p>
+<p>两排图案正好左右镜像，这就是"一排正着读、一排反着读"的证据。用万用表从一头 A5 量到另一头 A5 应该直通，这根就是 CC 线。</p>
+</div>
+<div class="key">拿母座图去对线头，左右是反的，会看到"第 5 脚是空的"，以为线没有 CC。<b>对线头要用这张公头图。</b></div>
 
 <!-- ============================================================ -->
 <h2 id="s3">3. 座子和线：6 脚、16 脚、24 脚；充电线和全功能线</h2>
@@ -234,6 +297,7 @@
 </svg>
 <figcaption>示意截面，实际芯数和排列各家不同。线的两端插头外观也一样，从外面分不出来。</figcaption>
 </figure>
+<p><b>下表的 24 / 16 / 12 / 6 脚说的都是母座（座子）的规格。</b></p>
 <table>
 <tr><th width="120">座子</th><th>保留的脚</th><th>阿甘视频里的例子</th></tr>
 <tr><td>24 脚</td><td>全部</td><td>"满针脚的 Type-C 好是好，但用的其实并不多"，很多产品不需要高速传输</td></tr>
